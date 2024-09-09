@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>股票历史数据抓取</title>
+    <script>
+      async function fetchStockData() {
+        const stockCode = document.getElementById("stockCode").value;
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${stockCode}?range=3mo&interval=1d`;
+
+        try {
+          const response = await fetch(url);
+          const data = await response.json();
+          const prices = data.chart.result[0].indicators.quote[0].close;
+
+          // 存储在内存中
+          const stockData = prices.map((price, index) => ({
+            date: new Date(
+              data.chart.result[0].timestamp[index] * 1000
+            ).toLocaleDateString(),
+            close: price,
+          }));
+
+          // 打印结果
+          const output = document.getElementById("output");
+          output.innerHTML =
+            "<h3>每日收盘价:</h3>" +
+            stockData
+              .map((item) => `<p>${item.date}: ${item.close}</p>`)
+              .join("");
+        } catch (error) {
+          console.error("获取数据失败:", error);
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <header>
+      <h1>股票历史数据抓取</h1>
+    </header>
+    <main>
+      <section>
+        <label for="stockCode">输入股票代码:</label>
+        <input type="text" id="stockCode" placeholder="例如: AAPL" />
+        <button onclick="fetchStockData()">获取数据</button>
+      </section>
+      <div id="output"></div>
+    </main>
+    <footer>
+      <p>&copy; 2023 股票数据抓取项目</p>
+    </footer>
+  </body>
+</html>
