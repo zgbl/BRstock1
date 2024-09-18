@@ -9,6 +9,8 @@
         const stockCode = document.getElementById("stockCode").value;
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${stockCode}?range=3mo&interval=1d`;
 
+        const url2 = `https://www.marketwatch.com/investing/stock/bgne/download-data?startDate=8/7/2023&endDate=09/06/2024`;
+
         try {
           const response = await fetch(url);
           const data = await response.json();
@@ -33,6 +35,18 @@
           console.error("获取数据失败:", error);
         }
       }
+
+      window.onload = function () {
+        // 等待页面加载完成后自动点击下载按钮
+        const downloadButton = document.querySelector(
+          'a[data-test="download-button"]'
+        ); // 根据实际按钮的选择器修改
+        if (downloadButton) {
+          downloadButton.click();
+        } else {
+          console.error("下载按钮未找到");
+        }
+      };
     </script>
   </head>
   <body>

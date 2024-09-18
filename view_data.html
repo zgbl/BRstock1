@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>股票数据可视化</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>股票数据可视化</h1>
+    </header>
+    <main>
+      <canvas id="stockChart" width="400" height="200"></canvas>
+    </main>
+    <script>
+      async function fetchData() {
+        const response = await fetch("stock_data.csv"); // 替换为您的 CSV 文件路径
+        const data = await response.text();
+        const rows = data.split("\n").slice(1); // 跳过表头
+
+        const labels = [];
+        const prices = [];
+
+        rows.forEach((row) => {
+          const columns = row.split(",");
+          if (columns.length === 2) {
+            labels.push(columns[0]); // 日期
+            prices.push(parseFloat(columns[1])); // 收盘价
+          }
+        });
+
+        // 创建图表
+        const ctx = document.getElementById("stockChart").getContext("2d");
+        const stockChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "每日收盘价",
+                data: prices,
+                borderColor: "rgba(75, 192, 192, 1)",
+                borderWidth: 2,
+                fill: false,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "日期",
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: "收盘价",
+                },
+              },
+            },
+          },
+        });
+      }
+
+      window.onload = fetchData;
+    </script>
+  </body>
+</html>
