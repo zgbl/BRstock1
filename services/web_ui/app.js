@@ -647,7 +647,10 @@ async function generateAIAnalysis() {
   
   try {
     const lang = document.getElementById('ai-lang-select')?.value || 'zh';
-    const res = await apiFetch(`/api/stocks/${currentStock}/ai_analysis?lang=${lang}`);
+    const url = `/api/stocks/${currentStock}/ai_analysis?lang=${lang}`;
+    console.log(`[AI-AGENT] Fetching: ${url}`);
+    const res = await apiFetch(url);
+    console.log(`[AI-AGENT] Result:`, res);
     if (res && res.analysis) {
       content.textContent = res.analysis;
     } else {

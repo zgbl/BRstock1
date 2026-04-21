@@ -19,7 +19,8 @@
  context 4096 改成8192，得到完整报告了。
  现在报告是中文的，我需要用户能切换中文/英文
 
-11> 
+11> 11.1 > 现在 local AI 的配置 不能删！要try, 我会另外配置cloudfare 让local AI 还是可用。
+    11.2 > Gemini Key 我已经配置好，作为default, local 作为backup
 
 
 

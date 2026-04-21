@@ -1,0 +1,23 @@
+# 忽略备份和发布代码
+release/
+docs/
+deploy/
+backup.sh
+
+# 忽略 Python 缓存和虚拟环境
+__pycache__/
+*.pyc
+.venv/
+env/
+
+# 忽略敏感信息和本地设置
+.env
+.git
+.gitignore
+.dockerignore
+.DS_Store
+
+# 忽略其他无关文件
+test1.txt
+Data/
+# 注意：如果你的数据库文件在 Data 目录下且演示需要，可以不忽略它或者只忽略大的日志文件

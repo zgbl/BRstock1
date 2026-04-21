@@ -1,10 +1,27 @@
 import sys
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+import google.generativeai as genai
 
 # 将项目根目录加入路径，方便引用 internal 模块
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(PROJECT_ROOT))
+
+# 加载环境变量 (使用绝对路径确保从项目任何地方启动都能读到)
+ENV_PATH = Path(__file__).resolve().parent / ".env"
+load_dotenv(dotenv_path=ENV_PATH)
+
+# 配置 Gemini
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY and GEMINI_API_KEY.strip():
+    print(f"✅ Gemini API Key found (Starts with: {GEMINI_API_KEY[:4]}...)")
+    genai.configure(api_key=GEMINI_API_KEY)
+else:
+    print("⚠️ Gemini API Key NOT found or empty in .env. Falling back to Local AI.")
+
+# 本地 AI 地址
+LOCAL_AI_URL = os.getenv("LOCAL_AI_URL", "http://192.168.0.162:8912/v1/chat/completions")
 
 from fastapi import FastAPI, HTTPException
 import pandas as pd
@@ -14,20 +31,17 @@ from fastapi.responses import RedirectResponse
 from internal.db_client.database import StockDB
 import requests
 import json
-import os
-import google.generativeai as genai
-from dotenv import load_dotenv
-
-# 加载环境变量 (用于本地开发)
-load_dotenv()
-
-# 配置 Gemini
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-
+print("--- SYSTEM STARTING: FastAPI initializing ---")
 app = FastAPI(title="BRStock AI API", version="0.1.0")
 db = StockDB()
+
+# ── 全局请求日志 (调试必备) ──────────────────────────────────
+@app.middleware("http")
+async def log_requests(request, call_next):
+    print(f"Incoming Request: {request.method} {request.url.path}")
+    response = await call_next(request)
+    print(f"Request Finished: {request.url.path} (Status: {response.status_code})")
+    return response
 
 # ── API Routes ──────────────────────────────────────────────
 
@@ -120,11 +134,9 @@ def get_stock_summary(symbol: str):
 @app.get("/api/stocks/{symbol}/indicators")
 def get_stock_indicators(symbol: str):
     """
-    计算并返回当前股票的三大技术指标：
-    - RSI (14)
-    - MACD (12, 26, 9)
-    - SMA / EMA (20 和 50)
+    计算并返回当前股票的技术指标 (RSI, MACD, SMA/EMA)。
     """
+    print(f"--- [API CALLBACK] Calculating indicators for: {symbol} ---")
     table_name = f"{symbol.upper()}_5m"
     df = db.get_stock_data(table_name, limit=500)
 
@@ -249,10 +261,13 @@ def get_stock_indicators(symbol: str):
 def get_stock_ai_analysis(symbol: str, lang: str = "zh"):
     """
     获取 AI 对技术指标的详细分析。
-    调用本地 LLM (Gemma 4)。
     """
+    import requests
+    import google.generativeai as genai
+    print(f"--- Received AI Analysis Request for: {symbol} (lang: {lang}) ---")
     try:
         # 1. 获取指标数据
+        print(f"DEBUG: Fetching indicators for {symbol}")
         indicators = get_stock_indicators(symbol)
         
         # 2. 格式化数据为 Prompt
@@ -296,34 +311,64 @@ def get_stock_ai_analysis(symbol: str, lang: str = "zh"):
             """
             sys_msg = "You are a professional stock market analyst. Provide concise analysis in Chinese."
         
-        # 3. 调用本地 LLM (LM Studio)
-        llm_url = "http://192.168.0.162:8912/v1/chat/completions"
-        payload = {
-            "model": "google/gemma-4-e4b", # 用户指定的模型名
-            "messages": [
-                {"role": "system", "content": sys_msg},
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": 0.7,
-            "max_tokens": 4096
-        }
-        
-        response = requests.post(llm_url, json=payload, timeout=300)
-    
-        if response.status_code != 200:
-            print(f"LLM Error Response: {response.text}")
+        # --- 策略：Gemini 优先，Local 备选 ---
+        analysis_text = None
+        source = "Unknown"
+
+        # 1. 尝试 Gemini (最新系列)
+        if GEMINI_API_KEY:
+            try:
+                print(f"--- Attempting Gemini Analysis for {symbol} (Model: gemini-3-flash-preview) ---")
+                #model = genai.GenerativeModel('gemini-2.5-flash') # 'gemini-2.5-flash' works
+                model = genai.GenerativeModel('gemini-3-flash-preview') # 'gemini-3-flash-preview' works
+                full_prompt = f"{sys_msg}\n\n{prompt}"
+                response = model.generate_content(
+                    full_prompt,
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.7,
+                        max_output_tokens=4096,
+                    )
+                )
+                analysis_text = response.text
+                source = "Google Gemini (2.5-flash)"
+            except Exception as e:
+                print(f"Gemini Error, falling back to Local AI: {e}")
+
+        # 2. 如果 Gemini 失败或未配置，尝试 Local AI
+        if not analysis_text:
+            try:
+                print(f"--- Attempting Local AI Analysis for {symbol} ({LOCAL_AI_URL}) ---")
+                payload = {
+                    "model": "google/gemma-4-e4b",
+                    "messages": [
+                        {"role": "system", "content": sys_msg},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.7,
+                    "max_tokens": 4096
+                }
+                # 注意：本地调用超时时间设长一点以便 Reasoning
+                res = requests.post(LOCAL_AI_URL, json=payload, timeout=300)
+                if res.status_code == 200:
+                    analysis_text = res.json()['choices'][0]['message']['content']
+                    source = "Local AI (LM Studio)"
+                else:
+                    print(f"Local AI Error: {res.text}")
+            except Exception as e:
+                print(f"Local AI also failed: {e}")
+
+        # 3. 返回结果
+        if analysis_text:
             return {
                 "symbol": symbol.upper(),
-                "analysis": f"AI 分析返回错误 ({response.status_code}): {response.text[:200]}"
+                "analysis": analysis_text,
+                "source": source
             }
-            
-        llm_res = response.json()
-        analysis_text = llm_res['choices'][0]['message']['content']
-        
-        return {
-            "symbol": symbol.upper(),
-            "analysis": analysis_text
-        }
+        else:
+            return {
+                "symbol": symbol.upper(),
+                "analysis": "AI 分析暂时不可用：Gemini 与本地模型均调用失败。请检查配置。"
+            }
         
     except Exception as e:
         print(f"AI Analysis Error: {e}")
