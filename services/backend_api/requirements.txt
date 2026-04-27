@@ -4,3 +4,9 @@ pandas
 requests
 google-generativeai
 python-dotenv
+sqlalchemy
+psycopg2-binary
+yfinance
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart

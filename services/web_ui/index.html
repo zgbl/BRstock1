@@ -9,6 +9,47 @@
   <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
+<!-- ===== Auth Modal ===== -->
+<div id="auth-overlay" class="auth-overlay" style="display:none">
+  <div class="auth-modal">
+    <button onclick="hideAuthModal()" style="position:absolute; top:15px; right:15px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:20px">✕</button>
+    <div class="auth-header">
+      <h2 id="auth-title">Login to BRStock AI</h2>
+      <p id="auth-subtitle">Access your personal watchlist and AI insights</p>
+    </div>
+    <div id="auth-error" class="auth-error" style="display:none"></div>
+    <form class="auth-body" onsubmit="event.preventDefault(); handleAuthSubmit();">
+      <div class="input-group">
+        <label>Email Address</label>
+        <input type="email" id="auth-email" placeholder="name@example.com">
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="auth-password" placeholder="••••••••">
+      </div>
+      <div class="input-group" id="group-fullname" style="display:none">
+        <label>Full Name</label>
+        <input type="text" id="auth-fullname" placeholder="John Doe">
+      </div>
+      <div class="input-group" id="group-pin" style="display:none">
+        <label>Secret Reset PIN (6 digits)</label>
+        <input type="password" id="auth-pin" placeholder="Used for recovery">
+      </div>
+      <div class="input-group" id="group-new-password" style="display:none">
+        <label>New Password</label>
+        <input type="password" id="auth-new-password" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary" id="btn-auth-submit" style="width:100%; justify-content:center; margin-top:10px" onclick="handleAuthSubmit()">Login</button>
+      <div class="auth-switch" id="auth-links">
+        <span id="auth-switch-text">Don't have an account?</span>
+        <a href="javascript:void(0)" onclick="toggleAuthMode()" id="auth-switch-link">Sign Up</a>
+        <div style="margin-top:10px;">
+          <a href="javascript:void(0)" onclick="showResetMode()" id="auth-forgot-link">Forgot Password?</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
 <div class="layout">
 
   <!-- ===== Sidebar ===== -->
@@ -46,6 +87,10 @@
     </nav>
 
     <div class="sidebar-footer">
+      <button class="nav-item" id="btn-logout" onclick="handleLogoutOrLogin()">
+        <span class="icon">👤</span>
+        <span>Login</span>
+      </button>
       <div class="status-badge">
         <span class="status-dot"></span>
         <span>Data Live</span>
@@ -62,13 +107,15 @@
         <h1 class="page-title" id="page-title">📊 Market Dashboard</h1>
         <div class="market-time" id="market-time">NYSE –:–:– ET</div>
       </div>
-      <div class="topbar-right">
+      <div class="top-bar-actions">
         <div class="search-box">
           <span class="search-icon">🔍</span>
-          <input type="text" placeholder="Search ticker..." id="search-input" onkeydown="handleSearch(event)">
+          <input type="text" id="add-stock-input" placeholder="Search ticker..." onkeydown="handleSearchInput(event)">
+          <div id="search-results" class="search-results"></div>
         </div>
-        <button class="btn btn-ghost" onclick="navigate('ai')">🤖 AI Report</button>
-        <button class="btn btn-primary">+ Add Stock</button>
+        <button class="btn btn-primary" onclick="showAuthModal()" id="btn-login-top">
+          <span class="icon">➕</span> Add Stock
+        </button>
       </div>
     </header>
 
@@ -123,36 +170,14 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div class="panel-card">
             <div class="panel-title">Today's Top Movers</div>
-            <div class="stats-list">
-              <div class="stats-list-item">
-                <span class="label">QQQ – Invesco ETF</span>
-                <span class="val text-green">+1.18%</span>
-              </div>
-              <div class="stats-list-item">
-                <span class="label">VOO – Vanguard S&amp;P</span>
-                <span class="val text-green">+0.96%</span>
-              </div>
-              <div class="stats-list-item">
-                <span class="label">TSLA – Tesla</span>
-                <span class="val text-red">-2.75%</span>
-              </div>
+            <div class="stats-list" id="top-movers-list">
+              <!-- Rendered by JS -->
             </div>
           </div>
           <div class="panel-card">
             <div class="panel-title">AI Score Summary</div>
-            <div class="stats-list">
-              <div class="stats-list-item">
-                <span class="label">QQQ AI Score</span>
-                <span class="val" style="color:var(--accent-green)">74 / 100</span>
-              </div>
-              <div class="stats-list-item">
-                <span class="label">VOO AI Score</span>
-                <span class="val" style="color:#fbbf24">62 / 100</span>
-              </div>
-              <div class="stats-list-item">
-                <span class="label">TSLA AI Score</span>
-                <span class="val" style="color:var(--accent-red)">32 / 100</span>
-              </div>
+            <div class="stats-list" id="ai-score-summary-list">
+              <!-- Rendered by JS -->
             </div>
           </div>
         </div>
@@ -164,8 +189,8 @@
       <div class="page" id="page-chart">
         <div class="chart-layout">
 
-          <!-- Left: Charts -->
-          <div>
+          <!-- Left: Charts & AI -->
+          <div style="min-width: 0;">
             <div class="chart-container">
               <!-- Toolbar -->
               <div class="chart-toolbar">
@@ -181,10 +206,10 @@
                 </div>
                 <div style="display:flex;gap:8px;align-items:center">
                   <div class="interval-tabs">
-                    <button class="interval-tab active">5m</button>
-                    <button class="interval-tab">15m</button>
-                    <button class="interval-tab">1H</button>
-                    <button class="interval-tab">1D</button>
+                    <button class="interval-tab" onclick="changeInterval('5m', this)">5M</button>
+                    <button class="interval-tab active" onclick="changeInterval('1d', this)">1D</button>
+                    <button class="interval-tab" onclick="changeInterval('1w', this)">1W</button>
+                    <button class="interval-tab" onclick="changeInterval('1m', this)">1M</button>
                   </div>
                   <div style="display:flex;gap:6px">
                     <button class="btn btn-ghost" style="font-size:11px;padding:6px 10px" onclick="navigate('dashboard')">← Back</button>
@@ -209,6 +234,33 @@
               <div class="sub-chart-label">MACD (12, 26, 9)</div>
               <div id="macd-chart"></div>
             </div>
+
+            <!-- ── AI Technical Analysis Agent Section ── -->
+            <div class="panel-card mt-6" style="border: 2px solid var(--accent-purple); background: rgba(139, 92, 246, 0.08); padding: 24px; border-radius: 16px; box-shadow: 0 0 30px rgba(139, 92, 246, 0.15);">
+              <!-- Header: all controls strictly left-aligned -->
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 16px;">
+                <span style="font-size: 28px;">🤖</span>
+                <div>
+                  <div class="panel-title" style="margin-bottom: 4px; color: var(--text-primary); font-size: 14px;">AI Technical Analysis Agent</div>
+                  <div style="font-size: 11px; color: var(--accent-purple);">Real-time pattern recognition · Powered by Gemini</div>
+                </div>
+                
+                <button class="btn btn-ai-glow" id="btn-generate-ai-analysis" onclick="generateAIAnalysis()" style="font-size: 14px; padding: 10px 20px; white-space: nowrap;">
+                  ✨ Generate AI Report
+                </button>
+                
+                <select id="ai-lang-select" style="background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--accent-purple); border-radius: 6px; font-size: 13px; padding: 8px 12px; cursor:pointer;">
+                  <option value="en" selected>English (EN)</option>
+                  <option value="zh">中文 (ZH)</option>
+                </select>
+              </div>
+              <div class="ai-analysis-content" id="ai-analysis-content" style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); min-height: 80px;">
+                <div style="color: var(--text-muted); font-style: italic; font-size: 14px;">
+                  Click "Generate AI Report" to get a detailed AI analysis based on current technical indicators...
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <!-- Right: Info Panel -->
@@ -294,44 +346,14 @@
             <!-- Stocks Switch -->
             <div class="panel-card">
               <div class="panel-title">Switch Symbol</div>
-              <div style="display:flex;flex-direction:column;gap:6px">
-                <button class="btn btn-ghost" onclick="currentStock='QQQ';initChartPage()" style="justify-content:space-between">
-                  <span>QQQ</span><span class="text-green">+1.18%</span>
-                </button>
-                <button class="btn btn-ghost" onclick="currentStock='VOO';initChartPage()" style="justify-content:space-between">
-                  <span>VOO</span><span class="text-green">+0.96%</span>
-                </button>
-                <button class="btn btn-ghost" onclick="currentStock='TSLA';initChartPage()" style="justify-content:space-between">
-                  <span>TSLA</span><span class="text-red">-2.75%</span>
-                </button>
+              <div style="display:flex;flex-direction:column;gap:6px" id="switch-symbol-list">
+                <!-- Rendered by JS -->
               </div>
             </div>
 
           </div>
         </div>
-
-        <!-- AI Technical Analysis Agent Section -->
-        <div class="panel-card mt-6" style="border: 1px solid rgba(0, 212, 255, 0.3); background: rgba(0, 212, 255, 0.05);">
-          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span style="font-size: 24px;">🤖</span>
-              <div class="panel-title" style="margin-bottom: 0;">AI Technical Analysis Agent</div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <select id="ai-lang-select" style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px; font-size: 11px; padding: 2px 4px;">
-                <option value="zh">中文 (ZH)</option>
-                <option value="en">English (EN)</option>
-              </select>
-              <button class="btn btn-primary" id="btn-generate-ai-analysis" onclick="generateAIAnalysis()" style="font-size: 12px;">⟳ Generate Analysis</button>
-            </div>
-          </div>
-          <div class="ai-analysis-content" id="ai-analysis-content">
-            <div style="color: var(--text-muted); font-style: italic;">
-              Click the button to generate a detailed AI analysis based on current technical indicators...
-            </div>
-          </div>
-        </div>
-      </div>
+      </div> <!-- End of Page Chart -->
 
       <!-- ============================================ -->
       <!-- PAGE: AI INSIGHTS                            -->
@@ -341,15 +363,32 @@
 
           <!-- Left: AI Report -->
           <div class="report-card">
-            <div class="report-header">
-              <div class="report-title-wrap">
-                <div class="ai-icon">🤖</div>
-                <div>
-                  <div class="report-card-title">AI Daily Analysis Report</div>
-                  <div class="report-date" id="report-date">Loading...</div>
-                </div>
+            <!-- Add Stock Section -->
+            <div style="padding: 18px 22px; border-bottom: 1px solid var(--border); background: rgba(139,92,246,0.05);">
+              <div class="panel-title" style="margin-bottom: 12px; color: var(--accent-blue);">➕ Add to Watchlist</div>
+              <div style="display: flex; gap: 10px;">
+                <input type="text" id="add-stock-input" placeholder="Enter ticker (e.g. NVDA)" style="flex: 1; background: var(--bg-secondary); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; color: var(--text-primary);">
+                <button class="btn btn-primary" onclick="addStockFromInput()">Add Stock</button>
               </div>
-              <button class="btn btn-primary" style="font-size:12px" onclick="regenerateReport()">⟳ Regenerate</button>
+              <div id="add-stock-status" style="font-size: 11px; margin-top: 6px; color: var(--text-muted);"></div>
+            </div>
+            <div class="report-header">
+                <div class="report-title-wrap">
+                  <div class="ai-icon">🤖</div>
+                  <div>
+                    <div class="report-card-title">AI Technical Analysis Agent</div>
+                    <div class="report-date">Deep technical scan & multi-indicator fusion</div>
+                  </div>
+                  <button class="btn btn-ai-glow" id="btn-generate-ai-analysis-ai" onclick="generateAIAnalysis()" style="margin-left: 15px;">
+                    ✨ Generate Analysis
+                  </button>
+                </div>
+                <div class="report-header-actions">
+                  <select class="report-select" id="ai-lang-select-ai">
+                    <option value="zh">中文 (ZH)</option>
+                    <option value="en">English (EN)</option>
+                  </select>
+                </div>
             </div>
 
             <!-- Signal Grid -->
@@ -416,7 +455,7 @@
                 <div style="font-size:32px;margin-bottom:8px">⏪</div>
                 <div style="font-size:14px;font-weight:600;margin-bottom:6px">Backtesting Engine</div>
                 <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px">
-                  Validate your AI signals against up to 60 days of historical 5-minute data. Coming in Phase 4.
+                  Validate your AI signals against up to 30 years of historical daily data. Coming in Phase 4.
                 </div>
                 <button class="btn btn-ghost" style="width:100%;justify-content:center;border-color:rgba(139,92,246,0.4);color:#a78bfa">
                   🔔 Notify Me When Ready
@@ -446,12 +485,9 @@
   function handleSearch(e) {
     if (e.key === 'Enter') {
       const val = e.target.value.toUpperCase().trim();
-      if (['QQQ','VOO','TSLA'].includes(val)) {
-        currentStock = val;
-        navigate('chart');
+      if (val) {
+        addStock(val);
         e.target.value = '';
-      } else {
-        alert(`"${val}" 暂未在自选股中，请先添加。`);
       }
     }
   }
@@ -467,14 +503,7 @@
     }, 2000);
   }
 
-  // Interval tab click
-  document.addEventListener('click', e => {
-    if (e.target.classList.contains('interval-tab')) {
-      e.target.closest('.interval-tabs').querySelectorAll('.interval-tab').forEach(t => t.classList.remove('active'));
-      e.target.classList.add('active');
-      if (currentPage === 'chart') drawCharts();
-    }
-  });
+
 </script>
 </body>
 </html>

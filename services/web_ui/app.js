@@ -165,14 +165,35 @@ function genVolumeData(base, count) {
 let currentPage = 'dashboard';
 let currentStock = 'QQQ';
 let charts = {};
-let stockData = {};       // Stores latest history for each stock
+let stockData = {};       // Stores history: stockData[symbol][interval]
 let stockStats = {};      // Stores latest summary (stats) for each stock
 let indicatorData = {};   // Stores computed technical indicators per stock
+let watchlist = [];
+let authToken = localStorage.getItem('brstock_token');
+let currentInterval = '1d';
+let authMode = 'login'; // 'login' or 'register'
+
+async function initWatchlist() {
+  const data = await apiFetch('/api/watchlist');
+  watchlist = data || ['QQQ', 'VOO', 'TSLA', 'NVDA', 'AAPL', 'MSFT', 'AMZN', 'META', 'GOOGL'];
+}
 
 // ===== API Fetching =====
-async function apiFetch(endpoint) {
+async function apiFetch(endpoint, options = {}) {
+  const headers = { ...options.headers };
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
   try {
-    const response = await fetch(endpoint);
+    const response = await fetch(endpoint, { ...options, headers });
+
+    if (response.status === 401) {
+      console.warn('Unauthorized: Clearing token and showing login.');
+      logout();
+      return null;
+    }
+
     if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
     return await response.json();
   } catch (err) {
@@ -182,13 +203,15 @@ async function apiFetch(endpoint) {
 }
 
 async function refreshAllData() {
-  const symbols = ['QQQ', 'VOO', 'TSLA'];
-  const promises = symbols.map(async (s) => {
+  const promises = watchlist.map(async (s) => {
     const [history, summary] = await Promise.all([
-      apiFetch(`/api/stocks/${s}/history?limit=200`),
+      apiFetch(`/api/stocks/${s}/history?interval=1d`), // Dashboard usually wants daily
       apiFetch(`/api/stocks/${s}/summary`)
     ]);
-    if (history) stockData[s] = history;
+    if (history) {
+      if (!stockData[s]) stockData[s] = {};
+      stockData[s]['1d'] = history;
+    }
     if (summary) stockStats[s] = summary;
   });
   await Promise.all(promises);
@@ -214,7 +237,7 @@ async function navigate(page) {
     renderDashboard();
   }
   if (page === 'chart') {
-    await refreshStockData(currentStock);
+    await refreshStockData(currentStock, currentInterval);
     initChartPage();
   }
   if (page === 'ai') {
@@ -222,42 +245,109 @@ async function navigate(page) {
   }
 }
 
-async function refreshStockData(symbol) {
+async function refreshStockData(symbol, interval = '1d') {
   const [history, summary, indicators] = await Promise.all([
-    apiFetch(`/api/stocks/${symbol}/history?limit=200`),
+    apiFetch(`/api/stocks/${symbol}/history?interval=${interval}`),
     apiFetch(`/api/stocks/${symbol}/summary`),
-    apiFetch(`/api/stocks/${symbol}/indicators`)
+    apiFetch(`/api/stocks/${symbol}/indicators?interval=${interval}`)
   ]);
-  if (history)    stockData[symbol]     = history;
-  if (summary)    stockStats[symbol]    = summary;
+  
+  if (!stockData[symbol]) stockData[symbol] = {};
+  // Always overwrite the specific interval data, or set to empty if failed
+  stockData[symbol][interval] = history || { data: [] };
+  
+  if (summary) stockStats[symbol] = summary;
   if (indicators) indicatorData[symbol] = indicators;
+}
+
+async function changeInterval(interval, btn) {
+  currentInterval = interval;
+  // UI update
+  if (btn) {
+    const tabs = btn.closest('.interval-tabs');
+    if (tabs) {
+      tabs.querySelectorAll('.interval-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+    }
+  }
+  
+  // Reload data and redraw
+  await refreshStockData(currentStock, interval);
+  initChartPage();
 }
 
 // ===== Dashboard =====
 function renderDashboard() {
   renderStockCards();
   renderMiniCharts();
+  renderTopMovers();
+  renderAISummary();
+}
+
+
+
+function renderTopMovers() {
+  const list = document.getElementById('top-movers-list');
+  if (!list) return;
+  // Sort watchlist by change pct
+  const sorted = [...watchlist].sort((a, b) => {
+    const sa = stockStats[a]?.change_pct || 0;
+    const sb = stockStats[b]?.change_pct || 0;
+    return Math.abs(sb) - Math.abs(sa);
+  }).slice(0, 5); // Top 5
+
+  list.innerHTML = sorted.map(ticker => {
+    const s = stockStats[ticker];
+    if (!s) return '';
+    const isUp = s.change >= 0;
+    return `
+      <div class="stats-list-item">
+        <span class="label">${ticker} – ${s.name || ''}</span>
+        <span class="val ${isUp ? 'text-green' : 'text-red'}">${isUp ? '+' : ''}${s.change_pct.toFixed(2)}%</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderAISummary() {
+  const list = document.getElementById('ai-score-summary-list');
+  if (!list) return;
+
+  list.innerHTML = watchlist.slice(0, 5).map(ticker => {
+    const score = ticker === 'QQQ' ? 74 : ticker === 'TSLA' ? 32 : 60;
+    const color = score > 65 ? 'var(--accent-green)' : score < 40 ? 'var(--accent-red)' : '#fbbf24';
+    return `
+      <div class="stats-list-item">
+        <span class="label">${ticker} AI Score</span>
+        <span class="val" style="color:${color}">${score} / 100</span>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderStockCards() {
   const grid = document.getElementById('watchlist-grid');
-  const symbols = ['QQQ', 'VOO', 'TSLA'];
-  grid.innerHTML = symbols.map(ticker => {
+  if (!grid) return;
+
+  grid.innerHTML = watchlist.map(ticker => {
     const s = stockStats[ticker];
-    if (!s) return `<div class="stock-card">Loading ${ticker}...</div>`;
-    
+    if (!s) return `<div class="stock-card skeleton" style="height:140px"></div>`;
+
     const isUp = s.change >= 0;
     const signal = ticker === 'QQQ' ? 'BUY' : ticker === 'TSLA' ? 'SELL' : 'HOLD'; // Mock signal for now
     const signalClass = { BUY: 'signal-buy', SELL: 'signal-sell', HOLD: 'signal-hold' }[signal];
-    
+
     return `
-      <div class="stock-card" onclick="selectStock('${ticker}')" id="card-${ticker}">
+      <div class="stock-card ${currentStock === ticker ? 'selected' : ''}" onclick="selectStock('${ticker}')" id="card-${ticker}">
         <div class="stock-card-header">
           <div>
             <div class="ticker-badge">${ticker}</div>
             <div class="ticker-name">${ticker === 'QQQ' ? 'Invesco QQQ ETF' : ticker === 'VOO' ? 'Vanguard S&P 500' : 'Tesla, Inc.'}</div>
           </div>
-          <span class="signal-badge ${signalClass}">${signal}</span>
+          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px">
+            <span class="signal-badge ${signalClass}">${signal}</span>
+            <button class="btn-icon" onclick="removeStock('${ticker}', event)" style="font-size:10px; opacity:0.5; background:none; border:none; color:var(--text-muted); cursor:pointer">✕ Remove</button>
+          </div>
         </div>
         <div class="stock-price ${isUp ? 'text-green' : 'text-red'}">$${s.price.toFixed(2)}</div>
         <div class="stock-change ${isUp ? 'text-green' : 'text-red'}">
@@ -266,9 +356,9 @@ function renderStockCards() {
         <canvas class="mini-chart" id="mini-${ticker}"></canvas>
         <div class="stock-indicators">
           <span class="indicator-chip">RSI 58.4</span>
-          <span class="indicator-chip">Vol ${(s.volume/1000000).toFixed(1)}M</span>
+          <span class="indicator-chip">Vol ${(s.volume / 1000000).toFixed(1)}M</span>
           <span class="indicator-chip" style="color:${isUp ? 'var(--accent-green)' : 'var(--accent-red)'}">
-            SMA20 ${ (s.price * 0.99).toFixed(2) }
+            SMA20 ${(s.price * 0.99).toFixed(2)}
           </span>
         </div>
       </div>
@@ -277,12 +367,13 @@ function renderStockCards() {
 }
 
 function renderMiniCharts() {
-  const symbols = ['QQQ', 'VOO', 'TSLA'];
+  const symbols = watchlist.slice(0, 9); // Show up to 9 mini charts
   symbols.forEach(ticker => {
     const canvas = document.getElementById(`mini-${ticker}`);
-    const hData = stockData[ticker];
-    if (!canvas || !hData) return;
-    
+    // Check nested structure
+    const hData = stockData[ticker] && stockData[ticker]['1d'];
+    if (!canvas || !hData || !hData.data || hData.data.length === 0) return;
+
     const ctx = canvas.getContext('2d');
     canvas.width = canvas.offsetWidth * 2;
     canvas.height = canvas.offsetHeight * 2;
@@ -290,6 +381,7 @@ function renderMiniCharts() {
 
     const w = canvas.offsetWidth, h = canvas.offsetHeight;
     const vals = hData.data.slice(-30).map(d => d.Close);
+    if (vals.length === 0) return;
     const min = Math.min(...vals), max = Math.max(...vals);
     const range = (max - min) || 1;
 
@@ -307,20 +399,24 @@ function renderMiniCharts() {
     grad.addColorStop(1, 'rgba(0,0,0,0)');
 
     ctx.beginPath();
-    ctx.moveTo(points[0].x, h);
-    points.forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.lineTo(points[points.length-1].x, h);
+    if (points.length > 0) {
+      ctx.moveTo(points[0].x, h);
+      points.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.lineTo(points[points.length - 1].x, h);
+    }
     ctx.closePath();
     ctx.fillStyle = grad;
     ctx.fill();
 
     // Line
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    points.forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    if (points.length > 0) {
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      points.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
   });
 }
 
@@ -333,92 +429,115 @@ function selectStock(ticker) {
 function initChartPage() {
   const s = stockStats[currentStock];
   if (!s) return;
-
-  document.getElementById('chart-ticker').textContent = currentStock;
-  document.getElementById('chart-name').textContent = currentStock === 'QQQ' ? 'Invesco QQQ ETF' : currentStock === 'VOO' ? 'Vanguard S&P 500' : 'Tesla, Inc.';
-  document.getElementById('chart-price').textContent = `$${s.price.toFixed(2)}`;
-  
+  const priceEl = document.getElementById('chart-price');
+  const changeEl = document.getElementById('chart-change-display');
   const isUp = s.change >= 0;
-  document.getElementById('chart-change-display').innerHTML =
-    `<span class="${isUp ? 'text-green' : 'text-red'}">
+
+  const tickerEl = document.getElementById('chart-ticker');
+  const nameEl = document.getElementById('chart-name');
+  if (tickerEl) tickerEl.textContent = currentStock;
+  if (nameEl) nameEl.textContent = s.name || currentStock;
+  if (priceEl) priceEl.textContent = `$${s.price.toFixed(2)}`;
+  if (changeEl) {
+    changeEl.innerHTML = `<span class="${isUp ? 'text-green' : 'text-red'}">
       ${isUp ? '▲' : '▼'} ${Math.abs(s.change).toFixed(2)} (${isUp ? '+' : ''}${s.change_pct.toFixed(2)}%)
     </span>`;
+  }
 
-  // Stats
-  document.getElementById('stat-open').textContent = `$${s.open.toFixed(2)}`;
-  document.getElementById('stat-high').textContent = `$${s.high.toFixed(2)}`;
-  document.getElementById('stat-low').textContent  = `$${s.low.toFixed(2)}`;
-  document.getElementById('stat-vol').textContent  = (s.volume / 1000000).toFixed(2) + 'M';
-  document.getElementById('stat-avgvol').textContent = '-';
+  // Stats - Defensive Checks
+  const setS = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setS('stat-open', `$${s.open.toFixed(2)}`);
+  setS('stat-high', `$${s.high.toFixed(2)}`);
+  setS('stat-low', `$${s.low.toFixed(2)}`);
+  setS('stat-vol', (s.volume / 1000000).toFixed(2) + 'M');
+  setS('stat-avgvol', '-');
 
   // ── Real Moving Averages ──
   const ind = indicatorData[currentStock];
   if (ind && ind.moving_averages) {
     const ma = ind.moving_averages;
-    document.getElementById('stat-sma20').textContent =
-      ma.sma20_latest != null ? `$${ma.sma20_latest.toFixed(2)}` : '-';
-    document.getElementById('stat-sma50').textContent =
-      ma.sma50_latest != null ? `$${ma.sma50_latest.toFixed(2)}` : '-';
-    document.getElementById('stat-ema20').textContent =
-      ma.ema20_latest != null ? `$${ma.ema20_latest.toFixed(2)}` : '-';
-    document.getElementById('stat-ema50').textContent =
-      ma.ema50_latest != null ? `$${ma.ema50_latest.toFixed(2)}` : '-';
-  } else {
-    document.getElementById('stat-sma20').textContent = `$${(s.price * 0.99).toFixed(2)}`;
-    document.getElementById('stat-sma50').textContent = `$${(s.price * 0.97).toFixed(2)}`;
-    document.getElementById('stat-ema20').textContent = '-';
-    document.getElementById('stat-ema50').textContent = '-';
+    setS('stat-sma20', ma.sma20_latest != null ? `$${ma.sma20_latest.toFixed(2)}` : '-');
+    setS('stat-sma50', ma.sma50_latest != null ? `$${ma.sma50_latest.toFixed(2)}` : '-');
+    setS('stat-ema20', ma.ema20_latest != null ? `$${ma.ema20_latest.toFixed(2)}` : '-');
+    setS('stat-ema50', ma.ema50_latest != null ? `$${ma.ema50_latest.toFixed(2)}` : '-');
   }
 
   // ── Real Technical Indicators panel ──
   if (ind) {
-    // RSI
-    const rsi = ind.rsi.latest;
+    const rsi = (ind.rsi && ind.rsi.latest) || null;
     const rsiEl = document.getElementById('ind-rsi');
-    rsiEl.textContent = rsi != null ? rsi.toFixed(1) : '–';
-    rsiEl.className = `value ${
-      rsi >= 70 ? 'text-red' : rsi <= 30 ? 'text-green' : 'text-blue'
-    }`;
+    if (rsiEl) {
+      rsiEl.textContent = rsi != null ? rsi.toFixed(1) : '–';
+      rsiEl.className = `value ${rsi >= 70 ? 'text-red' : rsi <= 30 ? 'text-green' : 'text-blue'}`;
+    }
     const rsiSignalMap = { overbought: '⚠️ Overbought', oversold: '✅ Oversold', neutral: '► Neutral', unknown: '' };
-    document.getElementById('ind-rsi-signal').textContent = rsiSignalMap[ind.rsi.signal] || '';
+    setS('ind-rsi-signal', rsiSignalMap[ind.rsi && ind.rsi.signal] || '');
 
     // MACD
-    const macdVal = ind.macd.macd_latest;
-    const macdEl  = document.getElementById('ind-macd');
-    macdEl.textContent = macdVal != null ? macdVal.toFixed(3) : '–';
-    macdEl.className   = `value ${macdVal >= 0 ? 'text-green' : 'text-red'}`;
-    document.getElementById('ind-macd-signal').textContent =
-      ind.macd.signal === 'bullish' ? '▲ Bullish Cross' : '▼ Bearish Cross';
+    const macdVal = (ind.macd && ind.macd.macd_latest) || null;
+    const macdEl = document.getElementById('ind-macd');
+    if (macdEl) {
+      macdEl.textContent = macdVal != null ? macdVal.toFixed(2) : '–';
+      macdEl.className = `value ${macdVal >= 0 ? 'text-green' : 'text-red'}`;
+    }
+    setS('ind-macd-signal', (ind.macd && ind.macd.signal === 'bullish') ? '▲ Bullish Cross' : '▼ Bearish Cross');
 
-    // BB placeholders (still mocked until we add Bollinger Bands)
-    document.getElementById('ind-bb-upper').textContent = (s.price * 1.05).toFixed(2);
-    document.getElementById('ind-bb-lower').textContent = (s.price * 0.95).toFixed(2);
+    // BB placeholders
+    setS('ind-bb-upper', (s.price * 1.05).toFixed(2));
+    setS('ind-bb-lower', (s.price * 0.95).toFixed(2));
   } else {
-    // Fallback: mock values
-    document.getElementById('ind-rsi').textContent  = '58.4';
-    document.getElementById('ind-rsi').className    = 'value text-blue';
-    document.getElementById('ind-rsi-signal').textContent = '► Neutral';
-    document.getElementById('ind-macd').textContent = '3.21';
-    document.getElementById('ind-macd').className   = 'value text-green';
-    document.getElementById('ind-macd-signal').textContent = '▲ Bullish Cross';
-    document.getElementById('ind-bb-upper').textContent = (s.price * 1.05).toFixed(2);
-    document.getElementById('ind-bb-lower').textContent = (s.price * 0.95).toFixed(2);
+    // Fallback: mock values (safely)
+    setS('ind-rsi', '58.4');
+    setS('ind-rsi-signal', '► Neutral');
+    setS('ind-macd', '3.21');
+    setS('ind-macd-signal', '▲ Bullish Cross');
+    setS('ind-bb-upper', (s.price * 1.05).toFixed(2));
+    setS('ind-bb-lower', (s.price * 0.95).toFixed(2));
   }
 
   // AI Score (Mocked)
   const score = currentStock === 'QQQ' ? 74 : currentStock === 'VOO' ? 62 : 32;
   const signal = currentStock === 'QQQ' ? 'BUY' : currentStock === 'VOO' ? 'HOLD' : 'SELL';
-  
-  document.getElementById('ai-score-val').textContent = score;
-  document.getElementById('ai-score-fill').style.width = score + '%';
-  document.getElementById('ai-score-fill').style.background =
-    score > 65 ? 'var(--accent-green)' : score < 40 ? 'var(--accent-red)' : '#fbbf24';
-  document.getElementById('ai-signal-text').textContent = signal;
-  document.getElementById('ai-signal-text').className =
-    `signal-badge ${signal === 'BUY' ? 'signal-buy' : signal === 'SELL' ? 'signal-sell' : 'signal-hold'}`;
+  const scoreColor = score > 65 ? 'var(--accent-green)' : score < 40 ? 'var(--accent-red)' : '#fbbf24';
+  const signalClass = signal === 'BUY' ? 'signal-buy' : signal === 'SELL' ? 'signal-sell' : 'signal-hold';
+
+  // Top bar mini score
+  const scoreValEl = document.getElementById('ai-score-val');
+  const scoreFillEl = document.getElementById('ai-score-fill');
+  const scoreLabelEl = document.getElementById('ai-score-label');
+  if (scoreValEl) scoreValEl.textContent = score;
+  if (scoreFillEl) { scoreFillEl.style.width = score + '%'; scoreFillEl.style.background = scoreColor; }
+  if (scoreLabelEl) { scoreLabelEl.textContent = signal; scoreLabelEl.className = `score-label ${signal === 'BUY' ? 'text-green' : signal === 'SELL' ? 'text-red' : ''}`; }
+
+  // Bottom panel large score + signal badge
+  const scoreVal2El = document.getElementById('ai-score-val2');
+  const scoreFill2El = document.getElementById('ai-score-fill2');
+  const signalTextEl = document.getElementById('ai-signal-text');
+  if (scoreVal2El) scoreVal2El.textContent = score;
+  if (scoreFill2El) { scoreFill2El.style.width = score + '%'; scoreFill2El.style.background = scoreColor; }
+  if (signalTextEl) { signalTextEl.textContent = signal; signalTextEl.className = `signal-badge ${signalClass}`; }
 
   // Init LightweightCharts
   drawCharts();
+
+  // ── Render Dynamic Switch Symbol List ──
+  renderSwitchSymbol();
+}
+
+function renderSwitchSymbol() {
+  const list = document.getElementById('switch-symbol-list');
+  if (!list) return;
+  list.innerHTML = watchlist.map(ticker => {
+    const s = stockStats[ticker];
+    const changePct = s ? s.change_pct : 0;
+    const isUp = changePct >= 0;
+    return `
+      <button class="btn btn-ghost" onclick="selectStock('${ticker}')" style="justify-content:space-between; ${ticker === currentStock ? 'background:rgba(255,255,255,0.05); border:1px solid var(--accent-blue)' : ''}">
+        <span>${ticker}</span>
+        <span class="${isUp ? 'text-green' : 'text-red'}">${isUp ? '+' : ''}${changePct.toFixed(2)}%</span>
+      </button>
+    `;
+  }).join('');
 }
 
 function drawCharts() {
@@ -433,8 +552,15 @@ function drawCharts() {
     crosshair: { mode: LWC.CrosshairMode.Normal }
   });
 
-  const hData = stockData[currentStock];
-  if (!hData) return;
+  const hData = stockData[currentStock] && stockData[currentStock][currentInterval];
+  if (!hData || !hData.data || hData.data.length === 0) {
+    // Clear charts if no data
+    if (charts.kline) { try { charts.kline.remove(); charts.kline = null; } catch (e) { } }
+    if (charts.volume) { try { charts.volume.remove(); charts.volume = null; } catch (e) { } }
+    const klineEl = document.getElementById('kline-chart');
+    if (klineEl) klineEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted)">No historical data found for this interval. Please run the data pipeline.</div>';
+    return;
+  }
 
   const rawData = hData.data;
   // Map back-end OHLC to LWC format and handle string timestamps
@@ -447,7 +573,7 @@ function drawCharts() {
   }));
 
   // K-line
-  if (charts.kline) { try { charts.kline.remove(); } catch(e) {} }
+  if (charts.kline) { try { charts.kline.remove(); } catch (e) { } }
   const klineEl = document.getElementById('kline-chart');
   charts.kline = LWC.createChart(klineEl, chartOptions(340));
   const candleSeries = charts.kline.addCandlestickSeries({
@@ -493,14 +619,14 @@ function drawCharts() {
     color: d.Close >= d.Open ? 'rgba(0,230,118,0.5)' : 'rgba(255,76,106,0.5)'
   }));
 
-  if (charts.volume) { try { charts.volume.remove(); } catch(e) {} }
+  if (charts.volume) { try { charts.volume.remove(); } catch (e) { } }
   const volEl = document.getElementById('volume-chart');
   charts.volume = LWC.createChart(volEl, { ...chartOptions(90), timeScale: { visible: false } });
   const volSeries = charts.volume.addHistogramSeries({ priceFormat: { type: 'volume' } });
   volSeries.setData(volumeData);
 
   // ── RSI (real data from backend) ──
-  if (charts.rsi) { try { charts.rsi.remove(); } catch(e) {} }
+  if (charts.rsi) { try { charts.rsi.remove(); } catch (e) { } }
   const rsiEl = document.getElementById('rsi-chart');
   charts.rsi = LWC.createChart(rsiEl, { ...chartOptions(100), timeScale: { visible: false } });
   const rsiSeries = charts.rsi.addLineSeries({ color: '#00d4ff', lineWidth: 1.5, priceFormat: { minMove: 0.01 } });
@@ -513,7 +639,7 @@ function drawCharts() {
 
   if (ind && ind.rsi && ind.rsi.history.length) {
     const rsiData = ind.rsi.history.map(d => ({
-      time:  Math.floor(new Date(d.timestamp).getTime() / 1000),
+      time: Math.floor(new Date(d.timestamp).getTime() / 1000),
       value: d.value
     }));
     rsiSeries.setData(rsiData);
@@ -521,7 +647,7 @@ function drawCharts() {
   charts.rsi.priceScale('right').applyOptions({ autoScale: false, minimum: 0, maximum: 100 });
 
   // ── MACD (real data from backend) ──
-  if (charts.macd) { try { charts.macd.remove(); } catch(e) {} }
+  if (charts.macd) { try { charts.macd.remove(); } catch (e) { } }
   const macdEl = document.getElementById('macd-chart');
   charts.macd = LWC.createChart(macdEl, { ...chartOptions(110), timeScale: { visible: false } });
 
@@ -534,7 +660,7 @@ function drawCharts() {
       value: d.histogram,
       color: d.histogram >= 0 ? 'rgba(0,230,118,0.6)' : 'rgba(255,76,106,0.6)'
     }));
-    const macdLineData   = mhist.map(d => ({ time: toTime(d.timestamp), value: d.macd }));
+    const macdLineData = mhist.map(d => ({ time: toTime(d.timestamp), value: d.macd }));
     const signalLineData = mhist.map(d => ({ time: toTime(d.timestamp), value: d.signal }));
 
     const histSeries = charts.macd.addHistogramSeries({ priceFormat: { minMove: 0.001 } });
@@ -553,21 +679,43 @@ function drawCharts() {
     const signalLineSeries = charts.macd.addLineSeries({ color: '#fbbf24', lineWidth: 1 });
     signalLineSeries.setData(signal);
   }
+
+  // ── Sync and Zoom ──
+  // Sync the main chart's time scale to others (Volume, RSI, MACD)
+  charts.kline.timeScale().subscribeVisibleTimeRangeChange(range => {
+    if (charts.volume) charts.volume.timeScale().setVisibleRange(range);
+    if (charts.rsi) charts.rsi.timeScale().setVisibleRange(range);
+    if (charts.macd) charts.macd.timeScale().setVisibleRange(range);
+  });
+
+  // Zoom to last year (approx 252 trading days) for 1D/1W/1M
+  if (currentInterval !== '5m' && candleData.length > 252) {
+    charts.kline.timeScale().setVisibleRange({
+      from: candleData[candleData.length - 252].time,
+      to: candleData[candleData.length - 1].time
+    });
+  } else {
+    charts.kline.timeScale().fitContent();
+  }
 } // end drawCharts
 
 // ===== AI Page =====
 function renderAIPage() {
   // Signal grid
   const grid = document.getElementById('signal-grid');
-  grid.innerHTML = Object.entries(STOCKS).map(([ticker, s]) => {
-    const isUp = s.change >= 0;
-    const bgColor = { BUY: 'var(--accent-green-dim)', SELL: 'var(--accent-red-dim)', HOLD: 'rgba(251,191,36,0.08)' }[s.signal];
-    const textColor = { BUY: 'var(--accent-green)', SELL: 'var(--accent-red)', HOLD: '#fbbf24' }[s.signal];
+  if (!grid) return;
+  grid.innerHTML = watchlist.map(ticker => {
+    const s = stockStats[ticker] || { change_pct: 0 };
+    const signal = ticker === 'QQQ' ? 'BUY' : ticker === 'TSLA' ? 'SELL' : (s.change_pct > 0 ? 'BUY' : 'HOLD');
+    const aiScore = ticker === 'QQQ' ? 74 : ticker === 'TSLA' ? 32 : 60;
+
+    const bgColor = { BUY: 'var(--accent-green-dim)', SELL: 'var(--accent-red-dim)', HOLD: 'rgba(251,191,36,0.08)' }[signal];
+    const textColor = { BUY: 'var(--accent-green)', SELL: 'var(--accent-red)', HOLD: '#fbbf24' }[signal];
     return `
       <div class="signal-item" style="background:${bgColor}; border: 1px solid ${textColor}22;">
         <div class="s-ticker">${ticker}</div>
-        <div class="s-action" style="color:${textColor}">${s.signal}</div>
-        <div class="s-confidence" style="color:${textColor}">AI ${s.aiScore}%</div>
+        <div class="s-action" style="color:${textColor}">${signal}</div>
+        <div class="s-confidence" style="color:${textColor}">AI ${aiScore}%</div>
       </div>`;
   }).join('');
   renderNews();
@@ -613,40 +761,67 @@ function renderGlobalStats() {
 }
 
 // ===== Init =====
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   updateClock();
   setInterval(updateClock, 1000);
+
+  // 无论是否登录，直接加载数据
+  await initWatchlist();
+  await refreshAllData();
   renderDashboard();
   renderGlobalStats();
   navigate('dashboard');
+
+  updateAuthUI();
 });
+
+function updateAuthUI() {
+  const logoutBtn = document.getElementById('btn-logout');
+  if (logoutBtn) {
+    logoutBtn.innerHTML = authToken ? '<span class="icon">🚪</span><span>Logout</span>' : '<span class="icon">👤</span><span>Login</span>';
+  }
+}
+
+function handleLogoutOrLogin() {
+  if (authToken) {
+    localStorage.removeItem('brstock_token');
+    authToken = null;
+    location.reload(); // 重新加载以游客身份进入
+  } else {
+    showAuthModal();
+  }
+}
 
 window.addEventListener('resize', () => {
   if (currentPage === 'chart') {
-    Object.values(charts).forEach(c => { try { c.timeScale().fitContent(); } catch(e){} });
+    Object.values(charts).forEach(c => { try { c.timeScale().fitContent(); } catch (e) { } });
   }
 });
 
 async function generateAIAnalysis() {
   const btn = document.getElementById('btn-generate-ai-analysis');
   const content = document.getElementById('ai-analysis-content');
-  
+
   if (!btn || !content) return;
-  
+
   // Set loading state
   btn.disabled = true;
   btn.textContent = '⌛ Generating...';
   content.innerHTML = `
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-      <div class="skeleton" style="height: 14px; width: 100%;"></div>
-      <div class="skeleton" style="height: 14px; width: 90%;"></div>
-      <div class="skeleton" style="height: 14px; width: 95%;"></div>
-      <div class="skeleton" style="height: 14px; width: 60%;"></div>
+    <div style="display: flex; flex-direction: column; gap: 12px; padding: 10px;">
+      <div style="color: var(--accent-blue); font-weight: bold; font-size: 14px; margin-bottom: 8px;">🤖 AI is analyzing technical patterns... Please wait.</div>
+      <div class="skeleton" style="height: 16px; width: 100%; border-radius: 4px;"></div>
+      <div class="skeleton" style="height: 16px; width: 90%; border-radius: 4px;"></div>
+      <div class="skeleton" style="height: 16px; width: 95%; border-radius: 4px;"></div>
+      <div class="skeleton" style="height: 16px; width: 60%; border-radius: 4px;"></div>
     </div>
   `;
-  
+  // Scroll it into view so the user knows something is happening below
+  content.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+
   try {
-    const lang = document.getElementById('ai-lang-select')?.value || 'zh';
+    const lang = document.getElementById('ai-lang-select')?.value || 'en';
     const url = `/api/stocks/${currentStock}/ai_analysis?lang=${lang}`;
     console.log(`[AI-AGENT] Fetching: ${url}`);
     const res = await apiFetch(url);
@@ -662,5 +837,236 @@ async function generateAIAnalysis() {
   } finally {
     btn.disabled = false;
     btn.textContent = '⟳ Generate Analysis';
+  }
+}
+// ===== Search & Add Watchlist Logic =====
+async function handleSearchInput(e) {
+  // Called on keydown — read value from the input element directly
+  const input = e.target || e;
+  const q = (input.value || '').trim();
+  const resultsEl = document.getElementById('search-results');
+  if (!resultsEl) return;
+
+  if (q.length < 2) {
+    resultsEl.style.display = 'none';
+    return;
+  }
+
+  const results = await apiFetch(`/api/stocks/search?q=${encodeURIComponent(q)}`);
+  if (results && results.length > 0) {
+    resultsEl.innerHTML = results.map(r => `
+      <div class="search-result-item" onclick="handleSearchResultClick('${r.ticker}')">
+        <span class="ticker">${r.ticker}</span>
+        <span class="name">${r.name}</span>
+      </div>
+    `).join('');
+    resultsEl.style.display = 'block';
+  } else {
+    resultsEl.style.display = 'none';
+  }
+}
+
+function handleSearchResultClick(ticker) {
+  document.getElementById('search-results').style.display = 'none';
+  document.getElementById('search-input').value = '';
+  addStock(ticker);
+}
+
+async function addStockFromInput() {
+  const input = document.getElementById('add-stock-input');
+  const symbol = input.value.toUpperCase().trim();
+  if (!symbol) return;
+
+  await addStock(symbol);
+  input.value = '';
+}
+
+async function addStock(symbol) {
+  if (!authToken) {
+    alert("Please login to add stocks to your personal watchlist.");
+    showAuthModal();
+    return;
+  }
+  const statusEl = document.getElementById('add-stock-status');
+  if (statusEl) statusEl.textContent = `⏳ Adding ${symbol}...`;
+
+  // 1. Trigger fetch to ensure data exists
+  const res = await fetch(`/api/stocks/${symbol}/fetch`, { method: 'POST' });
+  if (!res.ok) {
+    if (statusEl) statusEl.textContent = `❌ Error fetching data for ${symbol}`;
+    return;
+  }
+
+  // 2. Add to DB watchlist
+  await fetch(`/api/watchlist/${symbol}`, { method: 'POST' });
+
+  // 3. Update local state and refresh
+  await initWatchlist();
+  await refreshAllData();
+
+  if (statusEl) statusEl.textContent = `✅ ${symbol} added to watchlist!`;
+
+  if (currentPage === 'dashboard') renderDashboard();
+  currentStock = symbol;
+  navigate('chart');
+}
+
+async function removeStock(symbol, event) {
+  if (event) event.stopPropagation(); // Don't navigate to chart
+  if (!authToken) {
+    alert("Please login to manage your watchlist.");
+    showAuthModal();
+    return;
+  }
+  if (!confirm(`Remove ${symbol} from watchlist?`)) return;
+
+  await fetch(`/api/watchlist/${symbol}`, { method: 'DELETE' });
+  await initWatchlist();
+  renderDashboard();
+}
+
+// Close search results when clicking outside
+document.addEventListener('click', e => {
+  const box = document.querySelector('.search-box');
+  const results = document.getElementById('search-results');
+  if (box && results && !box.contains(e.target)) {
+    results.style.display = 'none';
+  }
+});
+
+// ===== Authentication Logic =====
+function showAuthModal() {
+  document.getElementById('auth-overlay').style.display = 'flex';
+}
+
+function hideAuthModal() {
+  document.getElementById('auth-overlay').style.display = 'none';
+}
+
+function toggleAuthMode() {
+  authMode = authMode === 'login' ? 'register' : 'login';
+  updateAuthModeUI();
+}
+
+function showResetMode() {
+  authMode = 'reset';
+  updateAuthModeUI();
+}
+
+function showLoginMode() {
+  authMode = 'login';
+  updateAuthModeUI();
+}
+
+function updateAuthModeUI() {
+  const isLogin = authMode === 'login';
+  const isReg = authMode === 'register';
+  const isReset = authMode === 'reset';
+
+  document.getElementById('auth-title').textContent =
+    isLogin ? 'Login to BRStock AI' : (isReg ? 'Create an Account' : 'Reset Password');
+  document.getElementById('auth-subtitle').textContent =
+    isLogin ? 'Access your personal watchlist and AI insights' :
+      (isReg ? 'Join our intelligent market community' : 'Enter your email and Secret PIN to reset');
+
+  document.getElementById('btn-auth-submit').textContent =
+    isLogin ? 'Login' : (isReg ? 'Sign Up' : 'Update Password');
+
+  document.getElementById('group-fullname').style.display = isReg ? 'block' : 'none';
+  document.getElementById('group-pin').style.display = (isReg || isReset) ? 'block' : 'none';
+  document.getElementById('group-new-password').style.display = isReset ? 'block' : 'none';
+
+  // Repurpose password field for login/reg
+  document.getElementById('auth-password').closest('.input-group').style.display = isReset ? 'none' : 'block';
+
+  document.getElementById('auth-switch-text').textContent = isLogin ? "Don't have an account?" : "Back to";
+  document.getElementById('auth-switch-link').textContent = isLogin ? 'Sign Up' : 'Login';
+  document.getElementById('auth-forgot-link').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+async function handleAuthSubmit() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value.trim();
+  const fullName = document.getElementById('auth-fullname').value.trim();
+  const pin = document.getElementById('auth-pin').value.trim();
+  const newPassword = document.getElementById('auth-new-password').value.trim();
+  const errorEl = document.getElementById('auth-error');
+
+  if (!email || (authMode !== 'reset' && !password)) {
+    errorEl.textContent = 'Please fill in required fields';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  errorEl.style.display = 'none';
+  const btn = document.getElementById('btn-auth-submit');
+  btn.disabled = true;
+  btn.textContent = '⌛ Processing...';
+
+  try {
+    if (authMode === 'register') {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, full_name: fullName, reset_pin: pin })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Registration failed');
+      }
+      authMode = 'login';
+      updateAuthModeUI();
+      errorEl.textContent = 'Registration successful! Please login.';
+      errorEl.className = 'auth-error success'; // Assume a success class
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    if (authMode === 'reset') {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, reset_pin: pin, new_password: newPassword })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Reset failed');
+      }
+      authMode = 'login';
+      updateAuthModeUI();
+      alert('Password reset successful! Please login with your new password.');
+      return;
+    }
+
+    // Login logic
+    const formData = new FormData();
+    formData.append('username', email);
+    formData.append('password', password);
+
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Invalid email or password');
+    }
+
+    const data = await res.json();
+    authToken = data.access_token;
+    localStorage.setItem('brstock_token', authToken);
+
+    hideAuthModal();
+    location.reload(); // Refresh fully to update all states
+
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.className = 'auth-error';
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = authMode === 'login' ? 'Login' : (authMode === 'register' ? 'Sign Up' : 'Update Password');
   }
 }

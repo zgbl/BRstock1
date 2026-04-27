@@ -17,3 +17,8 @@ release/
 .vscode/
 .idea/
 .gemini/
+
+#.clt
+./docs/gcp.txt
+./docs/idea.txt
+./docs/Temp.txt

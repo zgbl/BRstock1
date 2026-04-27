@@ -25,6 +25,8 @@ rsync -av --progress ./ "$TARGET_DIR" \
     --exclude ".DS_Store" \
     --exclude ".gemini" \
     --exclude ".vscode" \
-    --exclude "node_modules"
+    --exclude "node_modules" \
+    --exclude "Data/" \
+    --exclude "docs/"
 
 echo "✅ Backup completed successfully at $TARGET_DIR"

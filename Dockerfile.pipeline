@@ -1,0 +1,24 @@
+# ── Data Pipeline Dockerfile ──────────────────────────────────
+# 专门用于 Cloud Run Job 定时抓取股票数据并写入 Neon DB
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制 pipeline 专属依赖并安装
+COPY services/data_pipeline/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制 pipeline 脚本和共享模块
+COPY services/data_pipeline/ ./services/data_pipeline/
+COPY internal/ ./internal/
+
+# 设置 Python 路径
+ENV PYTHONPATH=/app
+
+# 运行数据抓取脚本 (Job 执行一次即退出)
+CMD ["python", "services/data_pipeline/fetch_data.py"]

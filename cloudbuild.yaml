@@ -1,0 +1,13 @@
+steps:
+  # 步骤 1: 构建 Pipeline 镜像
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'Dockerfile.pipeline'
+      - '-t'
+      - 'gcr.io/brstock-494003/brstock-pipeline:latest'
+      - '.'
+
+images:
+  - 'gcr.io/brstock-494003/brstock-pipeline:latest'

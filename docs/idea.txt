@@ -22,5 +22,6 @@
 11> 11.1 > 现在 local AI 的配置 不能删！要try, 我会另外配置cloudfare 让local AI 还是可用。
     11.2 > Gemini Key 我已经配置好，作为default, local 作为backup
 
+12> 我的分析最最重要的是股票的日线数据。要保证每个股票都有至少10年，最好是20年30年的日线数据。chart默认也要显示的是日K线图。chart 要能切换成周，月K线图
 
 
