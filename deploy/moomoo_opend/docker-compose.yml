@@ -1,0 +1,18 @@
+services:
+  moomoo-opend:
+    platform: linux/amd64
+    build:
+      context: ../../
+      dockerfile: deploy/moomoo_opend/Dockerfile
+    container_name: moomoo-opend
+    ports:
+      - "11111:11111"
+      - "22222:22222"
+    env_file:
+      - ../../.env
+    volumes:
+      # Mount your local config to the container
+      - ./OpenD.xml:/opend/OpenD.xml
+      # Mount data folder for session and logs persistence
+      - ./data:/opend/data
+    restart: unless-stopped

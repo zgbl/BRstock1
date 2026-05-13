@@ -10,3 +10,5 @@ yfinance
 passlib[bcrypt]
 python-jose[cryptography]
 python-multipart
+futu-api
+scipy

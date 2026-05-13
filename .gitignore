@@ -6,6 +6,7 @@ __pycache__/
 env/
 venv/
 .env
+.schwab_tokens.json
 
 # Backups
 release/
@@ -22,3 +23,7 @@ release/
 ./docs/gcp.txt
 ./docs/idea.txt
 ./docs/Temp.txt
+deploy/moomoo_opend/OpenD.xml
+deploy/moomoo_opend/data/*
+!deploy/moomoo_opend/data/.gitkeep
+API/Moomoo/OpenD_Ubuntu/moomoo_OpenD_10.4.6408_Ubuntu18.04.tar.gz

@@ -1,7 +1,9 @@
 # 忽略备份和发布代码
 release/
 docs/
-deploy/
+scratch/
+deploy/moomoo_opend/
+API/Moomoo/
 backup.sh
 
 # 忽略 Python 缓存和虚拟环境

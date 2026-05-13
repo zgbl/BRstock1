@@ -13,10 +13,7 @@ echo "🚀 Starting backup to $TARGET_DIR..."
 mkdir -p "$TARGET_DIR"
 
 # 使用 rsync 进行备份，排除不需要的文件
-# -a: 归档模式
-# -v: 显示过程
-# --exclude: 排除项
-rsync -av --progress ./ "$TARGET_DIR" \
+rsync -av ./ "$TARGET_DIR" \
     --exclude "release" \
     --exclude ".git" \
     --exclude "__pycache__" \
@@ -27,6 +24,11 @@ rsync -av --progress ./ "$TARGET_DIR" \
     --exclude ".vscode" \
     --exclude "node_modules" \
     --exclude "Data/" \
-    --exclude "docs/"
+    --exclude "docs/" \
+    --exclude "API/" \
+    --exclude "deploy/moomoo_opend/data/" \
+    --exclude ".env" \
+    --exclude "*.log"
 
 echo "✅ Backup completed successfully at $TARGET_DIR"
+echo "📊 Backup size: $(du -sh "$TARGET_DIR" | cut -f1)"

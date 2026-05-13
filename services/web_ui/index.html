@@ -1,11 +1,16 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BRStock AI · Intelligent Market Analysis</title>
   <meta name="description" content="Professional AI-powered stock analysis platform with technical indicators, real-time charts, and intelligent trading signals.">
+  <style>
+    .page { display: none; }
+    .page.active { display: block; }
+  </style>
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="BlackRiceLogo1.ico">
   <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
@@ -50,6 +55,33 @@
     </form>
   </div>
 </div>
+
+<!-- ===== Change Password Modal ===== -->
+<div id="password-overlay" class="auth-overlay" style="display:none">
+  <div class="auth-modal">
+    <button onclick="hideChangePasswordModal()" style="position:absolute; top:15px; right:15px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:20px">✕</button>
+    <div class="auth-header">
+      <h2>Change Password</h2>
+      <p>Ensure your account stays secure</p>
+    </div>
+    <div id="password-error" class="auth-error" style="display:none"></div>
+    <form class="auth-body" onsubmit="event.preventDefault(); handleChangePasswordSubmit();">
+      <div class="input-group">
+        <label>Old Password</label>
+        <input type="password" id="old-password" placeholder="••••••••">
+      </div>
+      <div class="input-group">
+        <label>New Password</label>
+        <input type="password" id="new-password" placeholder="••••••••">
+      </div>
+      <div class="input-group">
+        <label>Confirm New Password</label>
+        <input type="password" id="confirm-password" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:10px">Update Password</button>
+    </form>
+  </div>
+</div>
 <div class="layout">
 
   <!-- ===== Sidebar ===== -->
@@ -58,42 +90,57 @@
       <div class="logo-icon">📈</div>
       <div>
         <div class="logo-text">BRStock AI</div>
-        <div class="logo-sub">Market Intelligence</div>
+        <div class="logo-sub" data-i18n="brand.subtitle">Market Intelligence</div>
       </div>
     </div>
 
     <nav class="nav">
-      <div class="nav-label">Main</div>
+      <div class="nav-label" data-i18n="nav.main">Main</div>
       <button class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
-        <span class="icon">🏠</span><span>Dashboard</span>
+        <span class="icon">🏠</span><span data-i18n="nav.dashboard">Dashboard</span>
       </button>
       <button class="nav-item" data-page="chart" onclick="navigate('chart')">
-        <span class="icon">📊</span><span>Chart Analysis</span>
+        <span class="icon">📊</span><span data-i18n="nav.chart">Chart Analysis</span>
       </button>
       <button class="nav-item" data-page="ai" onclick="navigate('ai')">
-        <span class="icon">🤖</span><span>AI Insights</span>
+        <span class="icon">🤖</span><span data-i18n="nav.ai">AI Insights</span>
       </button>
 
-      <div class="nav-label">Tools</div>
-      <button class="nav-item" onclick="alert('即将推出 – 回测引擎')">
-        <span class="icon">⏪</span><span>Backtesting</span>
+      <div class="nav-label" data-i18n="nav.tools">Tools</div>
+      <button class="nav-item" data-page="backtest" onclick="navigate('backtest')">
+        <span class="icon">⏪</span><span data-i18n="nav.backtest">Backtesting</span>
       </button>
-      <button class="nav-item" onclick="alert('即将推出 – 自选股管理')">
-        <span class="icon">⭐</span><span>Watchlist</span>
+      <button class="nav-item" data-page="strategy" onclick="navigate('strategy')">
+        <span class="icon">⚙️</span><span data-i18n="nav.strategy">Strategy</span>
       </button>
-      <button class="nav-item" onclick="alert('即将推出 – 策略定制')">
-        <span class="icon">⚙️</span><span>Strategy</span>
+      <button class="nav-item" data-page="options" onclick="navigate('options')">
+        <span class="icon">📈</span><span data-i18n="nav.options">Options Analysis</span>
+      </button>
+      <button class="nav-item" data-page="synth-chain" onclick="navigate('synth-chain')">
+        <span class="icon">🧪</span><span data-i18n="nav.synthChain">Synth Chain</span>
       </button>
     </nav>
 
     <div class="sidebar-footer">
+      <div id="user-profile-info" style="display:none; padding: 10px; margin-bottom: 5px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+        <div style="font-size: 12px; color: var(--text-muted);" data-i18n="auth.loggedInAs">Logged in as:</div>
+        <div id="current-user-name" style="font-weight: 600; color: var(--accent-blue); overflow: hidden; text-overflow: ellipsis;">User</div>
+        <button onclick="showChangePasswordModal()" style="font-size: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0; margin-top: 4px; text-decoration: underline;" data-i18n="auth.changePassword">Change Password</button>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; padding: 0 10px 10px;">
+        <label for="language-select" style="font-size:11px; color:var(--text-muted);" data-i18n="settings.language">Language</label>
+        <select id="language-select" onchange="setLanguage(this.value)" style="flex:1; background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:6px 8px; font-size:12px;">
+          <option value="en">English</option>
+          <option value="zh">中文</option>
+        </select>
+      </div>
       <button class="nav-item" id="btn-logout" onclick="handleLogoutOrLogin()">
         <span class="icon">👤</span>
-        <span>Login</span>
+        <span id="logout-text" data-i18n="auth.login">Login</span>
       </button>
       <div class="status-badge">
         <span class="status-dot"></span>
-        <span>Data Live</span>
+        <span data-i18n="status.dataLive">Data Live</span>
       </div>
     </div>
   </aside>
@@ -110,11 +157,11 @@
       <div class="top-bar-actions">
         <div class="search-box">
           <span class="search-icon">🔍</span>
-          <input type="text" id="add-stock-input" placeholder="Search ticker..." onkeydown="handleSearchInput(event)">
+          <input type="text" id="top-add-stock-input" placeholder="Search ticker..." data-i18n-placeholder="search.placeholder" onkeydown="handleSearchInput(event)">
           <div id="search-results" class="search-results"></div>
         </div>
-        <button class="btn btn-primary" onclick="showAuthModal()" id="btn-login-top">
-          <span class="icon">➕</span> Add Stock
+        <button class="btn btn-primary" onclick="handleTopAddStockClick()" id="btn-login-top">
+          <span class="icon">➕</span> <span data-i18n="actions.addStock">Add Stock</span>
         </button>
       </div>
     </header>
@@ -130,26 +177,26 @@
         <div class="stats-grid mb-6">
           <div class="stat-card">
             <div class="stat-label">S&amp;P 500 Daily</div>
-            <div class="stat-value up" id="spy-val">+1.05%</div>
-            <div class="stat-change up">▲ Market is Up Today</div>
+            <div class="stat-value neutral" id="spy-val">-</div>
+            <div class="stat-change up" id="spy-change-label">Loading market data...</div>
             <div class="stat-icon">📈</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">VIX Volatility</div>
-            <div class="stat-value neutral" id="vix-val">17.32</div>
-            <div class="stat-change" style="color:var(--accent-green)">► Low Volatility</div>
+            <div class="stat-value neutral" id="vix-val">-</div>
+            <div class="stat-change neutral" id="vix-change-label">Loading market data...</div>
             <div class="stat-icon">〽️</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Fear &amp; Greed</div>
-            <div class="stat-value neutral" id="fear-val" style="font-size:18px">42 – Neutral</div>
-            <div class="stat-change" style="color:#fbbf24">► Neutral Sentiment</div>
-            <div class="stat-icon">🧠</div>
+            <div class="stat-label">NASDAQ Daily</div>
+            <div class="stat-value neutral" id="nasdaq-val">-</div>
+            <div class="stat-change neutral" id="nasdaq-change-label">Loading market data...</div>
+            <div class="stat-icon">📊</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">AI Signals Today</div>
-            <div class="stat-value up" id="ai-picks" style="font-size:16px">2 BUY · 1 SELL</div>
-            <div class="stat-change up">▲ Updated 5 mins ago</div>
+            <div class="stat-value neutral" id="ai-picks" style="font-size:16px">-</div>
+            <div class="stat-change up" id="ai-picks-label">Loading signals...</div>
             <div class="stat-icon">🤖</div>
           </div>
         </div>
@@ -200,7 +247,7 @@
                     <div style="font-size:11px;color:var(--text-muted)" id="chart-name">Invesco QQQ ETF</div>
                   </div>
                   <div>
-                    <div class="chart-price" id="chart-price">$447.82</div>
+                    <div class="chart-price" id="chart-price">-</div>
                     <div id="chart-change-display" style="font-size:12px"></div>
                   </div>
                 </div>
@@ -242,13 +289,20 @@
                 <span style="font-size: 28px;">🤖</span>
                 <div>
                   <div class="panel-title" style="margin-bottom: 4px; color: var(--text-primary); font-size: 14px;">AI Technical Analysis Agent</div>
-                  <div style="font-size: 11px; color: var(--accent-purple);">Real-time pattern recognition · Powered by Gemini</div>
+                  <div style="font-size: 11px; color: var(--accent-purple);">Real-time technical analysis · Live AI with BRStock engine fallback</div>
                 </div>
                 
                 <button class="btn btn-ai-glow" id="btn-generate-ai-analysis" onclick="generateAIAnalysis()" style="font-size: 14px; padding: 10px 20px; white-space: nowrap;">
                   ✨ Generate AI Report
                 </button>
                 
+                <select id="ai-model-select" style="background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--accent-blue); border-radius: 6px; font-size: 13px; padding: 8px 12px; cursor:pointer;">
+                  <option value="auto">Auto (Best Available)</option>
+                  <option value="gemini">Gemini (Native)</option>
+                  <option value="openrouter">OpenRouter (MiniMax)</option>
+                  <option value="local">Local AI</option>
+                </select>
+
                 <select id="ai-lang-select" style="background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--accent-purple); border-radius: 6px; font-size: 13px; padding: 8px 12px; cursor:pointer;">
                   <option value="en" selected>English (EN)</option>
                   <option value="zh">中文 (ZH)</option>
@@ -344,16 +398,717 @@
             </div>
 
             <!-- Stocks Switch -->
+            <!-- Stocks Switch -->
             <div class="panel-card">
               <div class="panel-title">Switch Symbol</div>
               <div style="display:flex;flex-direction:column;gap:6px" id="switch-symbol-list">
                 <!-- Rendered by JS -->
               </div>
             </div>
+          </div> <!-- End of .right-panel -->
+        </div> <!-- End of .chart-layout -->
+      </div> <!-- End of #page-chart -->
 
+
+
+
+
+
+      <!-- ============================================ -->
+      <!-- PAGE: STRATEGY                               -->
+      <!-- ============================================ -->
+      <div class="page" id="page-strategy">
+        <div class="panel-card" style="max-width: 1180px; margin: 0 auto;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+            <h2 style="font-size: 24px; color: var(--text-primary);">⚙️ Strategy Management</h2>
+            <button class="btn btn-primary" onclick="showNewStrategyModal()">+ Create New Strategy</button>
+          </div>
+          <div class="strategy-layout">
+            <div class="strategy-left">
+              <div id="strategy-list-container" class="stats-list strategy-grid">
+                <!-- Content via JS -->
+                <div style="color:var(--text-muted); text-align:center; padding:40px; grid-column: 1/-1;">Loading strategies...</div>
+              </div>
+            </div>
+            <div class="strategy-right">
+              <div id="strategy-detail-content" class="strategy-detail-card strategy-detail-empty">
+                Select a strategy to review configuration and launch a backtest.
+              </div>
+            </div>
           </div>
         </div>
-      </div> <!-- End of Page Chart -->
+      </div>
+
+      <!-- ============================================ -->
+      <!-- PAGE: BACKTESTING                           -->
+      <!-- ============================================ -->
+      <div class="page" id="page-backtest">
+        <div class="grid-2" style="gap: 24px; align-items: start;">
+          <!-- Left: Controls -->
+          <div class="panel-card" style="grid-column:1 / -1;">
+            <h3 class="panel-title" data-i18n="backtest.settings">Backtest Settings</h3>
+            <div class="auth-body" style="padding:0; background:none;">
+              <div class="input-group">
+                <label data-i18n="backtest.selectStrategy">Select Strategy</label>
+                <select id="backtest-strategy-select" class="report-select" style="width: 100%;" onchange="updateBacktestParamVisibility()">
+                  <option value="" data-i18n="backtest.noStrategy">-- No strategy selected --</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label data-i18n="fields.stockTicker">Stock Ticker</label>
+                <input type="text" id="backtest-ticker" placeholder="e.g. AAPL, QQQ" value="QQQ">
+              </div>
+              <div class="input-row" style="display:flex; gap:12px;">
+                <div class="input-group" style="flex:1;">
+                  <label data-i18n="fields.initialCapital">Initial Capital ($)</label>
+                  <input type="number" id="backtest-capital" value="100000">
+                </div>
+                <div class="input-group" style="flex:1;">
+                  <label data-i18n="fields.timeframe">Timeframe</label>
+                  <select id="backtest-period" class="report-select" onchange="updateBacktestDateVisibility()">
+                    <option value="1y" data-i18n="timeframe.1y">Past 1 Year</option>
+                    <option value="2y" data-i18n="timeframe.2y">Past 2 Years</option>
+                    <option value="5y" data-i18n="timeframe.5y">Past 5 Years</option>
+                    <option value="10y">Past 10 Years</option>
+                    <option value="20y">Past 20 Years</option>
+                    <option value="custom" data-i18n="timeframe.custom">Custom Range</option>
+                  </select>
+                </div>
+              </div>
+              <div class="input-row" id="backtest-custom-dates" style="display:none; gap:8px;">
+                <div class="input-group" style="flex:1;">
+                  <label data-i18n="fields.startDate">Start Date</label>
+                  <input type="date" id="backtest-start-date">
+                </div>
+                <div class="input-group" style="flex:1;">
+                  <label data-i18n="fields.endDate">End Date</label>
+                  <input type="date" id="backtest-end-date">
+                </div>
+              </div>
+              <div id="portfolio-params" style="display:none; margin-top:14px; padding:12px; border:1px solid var(--border); border-radius:8px; background:rgba(255,255,255,0.025);">
+                <div style="font-size:14px; font-weight:800; color:var(--accent-blue); margin-bottom:8px;" data-i18n="backtest.portfolioParams">Portfolio Sleeves</div>
+                <div class="portfolio-builder-grid">
+                  <div class="sleeve-card">
+                    <div class="sleeve-title" data-i18n="backtest.coreSleeve">Core ETF Sleeve</div>
+                    <div class="compact-grid-2">
+                      <div class="input-group">
+                        <label data-i18n="fields.sleeveAllocation">Allocation (%)</label>
+                        <input type="number" id="portfolio-core-pct" value="70" min="0" max="100" step="1">
+                      </div>
+                      <div class="input-group">
+                        <label data-i18n="fields.rebalance">Rebalance</label>
+                        <select id="portfolio-rebalance" class="report-select">
+                          <option value="none" data-i18n="portfolio.rebalanceNone">None</option>
+                          <option value="monthly" data-i18n="portfolio.rebalanceMonthly">Monthly</option>
+                          <option value="quarterly" selected data-i18n="portfolio.rebalanceQuarterly">Quarterly</option>
+                          <option value="annual" data-i18n="portfolio.rebalanceAnnual">Annual</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="compact-grid-2">
+                      <div class="input-group">
+                        <label data-i18n="fields.ticker">Ticker</label>
+                        <input type="text" id="portfolio-core-ticker-1" value="QQQ">
+                      </div>
+                      <div class="input-group">
+                        <label data-i18n="fields.weight">Weight (%)</label>
+                        <input type="number" id="portfolio-core-weight-1" value="50" min="0" max="100" step="1">
+                      </div>
+                      <div class="input-group">
+                        <label data-i18n="fields.ticker">Ticker</label>
+                        <input type="text" id="portfolio-core-ticker-2" value="VOO">
+                      </div>
+                      <div class="input-group">
+                        <label data-i18n="fields.weight">Weight (%)</label>
+                        <input type="number" id="portfolio-core-weight-2" value="50" min="0" max="100" step="1">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="sleeve-card">
+                    <div class="sleeve-title" data-i18n="backtest.optionsSleeve">Options Sleeve</div>
+                    <div class="compact-grid-2">
+                      <div class="input-group">
+                        <label data-i18n="fields.sleeveAllocation">Allocation (%)</label>
+                        <input type="number" id="portfolio-options-pct" value="30" min="0" max="100" step="1">
+                      </div>
+                      <div class="input-group">
+                        <label data-i18n="fields.optionTicker">Option Ticker</label>
+                        <input type="text" id="portfolio-option-ticker" value="QQQ" data-auto-default="true">
+                      </div>
+                    </div>
+                    <div class="input-group">
+                      <label data-i18n="fields.optionStrategy">Option Strategy</label>
+                      <select id="portfolio-option-strategy" class="report-select" onchange="updateBacktestParamVisibility()">
+                        <option value="system_bull_call">Bull Call Spread</option>
+                        <option value="system_leaps">LEAPS</option>
+                        <option value="system_bear_put">Bear Put Spread</option>
+                        <option value="system_bull_put">Bull Put Spread</option>
+                      </select>
+                    </div>
+                    <div style="font-size:12px; color:var(--text-secondary); line-height:1.45;" data-i18n="help.portfolioSleeves">Options capital utilization is measured inside the options sleeve by default.</div>
+                  </div>
+                </div>
+              </div>
+              <div id="buy-hold-params" style="display:none; margin-top:14px; padding:12px; border:1px solid var(--border); border-radius:8px; background:rgba(255,255,255,0.025);">
+                <div style="font-size:14px; font-weight:800; color:var(--accent-blue); margin-bottom:8px;">Buy &amp; Hold Portfolio</div>
+                <div class="compact-grid-2">
+                  <div class="input-group">
+                    <label>Invested Capital (%)</label>
+                    <input type="number" id="buyhold-allocation-pct" value="100" min="0" max="100" step="1">
+                  </div>
+                  <div class="input-group">
+                    <label>Rebalance</label>
+                    <select id="buyhold-rebalance" class="report-select">
+                      <option value="none" selected>None</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="annual">Annual</option>
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <label>Ticker 1</label>
+                    <input type="text" id="buyhold-ticker-1" value="QQQ">
+                  </div>
+                  <div class="input-group">
+                    <label>Weight 1 (%)</label>
+                    <input type="number" id="buyhold-weight-1" value="100" min="0" max="100" step="1">
+                  </div>
+                  <div class="input-group">
+                    <label>Ticker 2</label>
+                    <input type="text" id="buyhold-ticker-2" value="">
+                  </div>
+                  <div class="input-group">
+                    <label>Weight 2 (%)</label>
+                    <input type="number" id="buyhold-weight-2" value="0" min="0" max="100" step="1">
+                  </div>
+                  <div class="input-group">
+                    <label>Ticker 3</label>
+                    <input type="text" id="buyhold-ticker-3" value="">
+                  </div>
+                  <div class="input-group">
+                    <label>Weight 3 (%)</label>
+                    <input type="number" id="buyhold-weight-3" value="0" min="0" max="100" step="1">
+                  </div>
+                  <div class="input-group">
+                    <label>Ticker 4</label>
+                    <input type="text" id="buyhold-ticker-4" value="">
+                  </div>
+                  <div class="input-group">
+                    <label>Weight 4 (%)</label>
+                    <input type="number" id="buyhold-weight-4" value="0" min="0" max="100" step="1">
+                  </div>
+                  <div class="input-group">
+                    <label>Ticker 5</label>
+                    <input type="text" id="buyhold-ticker-5" value="">
+                  </div>
+                  <div class="input-group">
+                    <label>Weight 5 (%)</label>
+                    <input type="number" id="buyhold-weight-5" value="0" min="0" max="100" step="1">
+                  </div>
+                </div>
+              </div>
+              <div id="vertical-spread-params" style="display:none; margin-top:14px; padding:14px; border:1px solid var(--border); border-radius:8px; background:rgba(255,255,255,0.025);">
+                <div style="font-size:13px; font-weight:700; color:var(--accent-blue); margin-bottom:10px;" data-i18n="backtest.verticalParams">Vertical Spread Parameters</div>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
+                  <div class="input-group">
+                    <label data-i18n="fields.dteTarget">DTE Target</label>
+                    <input type="number" id="spread-dte" value="40" min="7" max="120">
+                  </div>
+                  <div class="input-group">
+                    <label data-i18n="fields.spreadWidth">Spread Width ($)</label>
+                    <input type="number" id="spread-width" value="20" min="1" step="1">
+                  </div>
+                  <div class="input-group">
+                    <label data-i18n="fields.capitalUtilization">Capital Utilization (%)</label>
+                    <input type="number" id="spread-risk-pct" value="30" min="0.1" max="100" step="0.1">
+                  </div>
+                  <div class="input-group">
+                    <label data-i18n="fields.longDelta">Long Delta Target</label>
+                    <input type="number" id="spread-long-delta" value="0.60" step="0.05">
+                  </div>
+                  <div class="input-group">
+                    <label data-i18n="fields.shortDelta">Short Delta Target</label>
+                    <input type="number" id="spread-short-delta" value="0.30" step="0.05">
+                  </div>
+                  <div class="input-group">
+                    <label data-i18n="fields.maxOpenPositions">Max Open Positions</label>
+                    <input type="number" id="spread-max-open" value="4" min="1" max="10">
+                  </div>
+                  <div class="input-group">
+                    <label data-i18n="fields.deltaTolerance">Delta Tolerance</label>
+                    <input type="number" id="spread-delta-tolerance" value="0.15" min="0.01" max="1" step="0.01">
+                  </div>
+                  <div class="input-group">
+                    <label data-i18n="fields.fillSlippage">Fill Slippage</label>
+                    <input type="number" id="spread-fill-slippage" value="0.10" min="0" max="0.5" step="0.01">
+                  </div>
+                  <div class="input-group">
+                    <label data-i18n="fields.openInterval">Open Interval (days)</label>
+                    <input type="number" id="spread-open-interval" value="10" min="1" max="120">
+                  </div>
+                  <div class="input-group" id="spread-rsi-min-wrap">
+                    <label data-i18n="fields.bullRsiMin">Bull Entry RSI Min</label>
+                    <input type="number" id="spread-entry-rsi-min" value="50" min="0" max="100">
+                  </div>
+                  <div class="input-group" id="spread-rsi-max-wrap" style="display:none;">
+                    <label data-i18n="fields.bearRsiMax">Bear Entry RSI Max</label>
+                    <input type="number" id="spread-entry-rsi-max" value="50" min="0" max="100">
+                  </div>
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); line-height:1.5; margin-top:8px;">
+                  <span data-i18n="help.bullCallDefaults">Bull Call default: buy ~0.60 delta call, sell higher strike by width. Capital utilization caps total open max debit/risk across all active spreads. Fill slippage is 0 for mid, 0.50 for natural ask/bid.</span>
+                </div>
+              </div>
+              <div id="leaps-params" style="display:none; margin-top:14px; padding:14px; border:1px solid var(--border); border-radius:8px; background:rgba(255,255,255,0.025);">
+                <div style="font-size:13px; font-weight:700; color:var(--accent-blue); margin-bottom:10px;" data-i18n="backtest.leapsParams">LEAPS Parameters</div>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
+                  <div class="input-group">
+                    <label data-i18n="fields.capitalUtilization">Capital Utilization (%)</label>
+                    <input type="number" id="leaps-capital-utilization" value="30" min="0.1" max="100" step="0.1">
+                  </div>
+                  <div class="input-group">
+                    <label data-i18n="fields.longDelta">Long Delta Target</label>
+                    <input type="number" id="leaps-delta-target" value="0.80" min="0.05" max="0.99" step="0.05">
+                  </div>
+                  <div class="input-group">
+                    <label data-i18n="fields.dteTarget">DTE Target</label>
+                    <input type="number" id="leaps-dte-target" value="365" min="90" max="1095" step="30">
+                  </div>
+                  <div class="input-group">
+                    <label data-i18n="fields.rollDte">Roll When DTE Below</label>
+                    <input type="number" id="leaps-roll-dte" value="60" min="1" max="365" step="1">
+                  </div>
+                  <div class="input-group">
+                    <label data-i18n="fields.fillSlippage">Fill Slippage</label>
+                    <input type="number" id="leaps-fill-slippage" value="0.10" min="0" max="0.5" step="0.01">
+                  </div>
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); line-height:1.5; margin-top:8px;">
+                  <span data-i18n="help.leapsDefaults">LEAPS default: buy long-term calls near 0.80 delta, allocate a chosen percent of equity, and roll when remaining DTE drops below the roll threshold.</span>
+                </div>
+              </div>
+              <button class="btn btn-ai-glow" style="margin-top: 16px;" id="btn-run-backtest" onclick="runBacktest()">
+                🚀 <span data-i18n="actions.runBacktest">Run Backtest Simulation</span>
+              </button>
+              <div id="backtest-progress-panel" class="backtest-progress-panel" style="display:none;">
+                <div class="backtest-progress-header">
+                  <span id="backtest-progress-title">Preparing backtest...</span>
+                  <span id="backtest-progress-elapsed">0s</span>
+                </div>
+                <div class="backtest-progress-bar"><span></span></div>
+                <div id="backtest-progress-detail" class="backtest-progress-detail">
+                  Checking local market data cache and strategy parameters.
+                </div>
+                <div id="backtest-progress-steps" class="backtest-progress-steps"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Results -->
+          <div class="panel-card" id="backtest-results-panel" style="display:none; min-height: 400px; grid-column:1 / -1;">
+            <h3 class="panel-title" data-i18n="backtest.resultsSummary">Results Summary</h3>
+            <div id="bt-summary-content"></div>
+            <div id="backtest-equity-chart" style="height: 250px; width: 100%; margin-top: 20px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border);"></div>
+          </div>
+        </div>
+
+        <!-- Trade Log -->
+        <div class="panel-card mt-6" id="backtest-log-panel" style="display:none;">
+          <h3 class="panel-title" data-i18n="backtest.tradeLog">Trade Log</h3>
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              <thead style="background: rgba(255,255,255,0.03);">
+                <tr style="border-bottom: 1px solid var(--border); text-align: left; color: var(--text-muted);">
+                  <th style="padding: 12px;">Type</th>
+                  <th style="padding: 12px;">Date</th>
+                  <th style="padding: 12px;">Price</th>
+                  <th style="padding: 12px;">Shares</th>
+                  <th style="padding: 12px;">Net P/L</th>
+                  <th style="padding: 12px;">Details</th>
+                </tr>
+              </thead>
+              <tbody id="backtest-log-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ============================================ -->
+      <!-- PAGE: SYNTHETIC OPTION CHAIN                 -->
+      <!-- ============================================ -->
+      <div class="page" id="page-synth-chain">
+        <div class="panel-card" style="margin-bottom: 18px;">
+          <h3 class="panel-title" data-i18n="synth.title">Synthetic Option Chain Inspector</h3>
+          <div style="display:grid; grid-template-columns: 140px 180px 220px auto; gap:12px; align-items:end;">
+            <div class="input-group">
+              <label data-i18n="fields.ticker">Ticker</label>
+              <input type="text" id="synth-chain-ticker" value="QQQ">
+            </div>
+            <div class="input-group">
+              <label data-i18n="fields.date">Date</label>
+              <input type="date" id="synth-chain-date">
+            </div>
+            <div class="input-group">
+              <label data-i18n="fields.dteList">DTE List</label>
+              <input type="text" id="synth-chain-dtes" value="30,40,45,90,180,365">
+            </div>
+            <button class="btn btn-primary" onclick="loadSyntheticChainByDate()" data-i18n="actions.generateChain">Generate Chain</button>
+          </div>
+          <div id="synth-chain-status" style="margin-top:10px; font-size:12px; color:var(--text-muted);" data-i18n="synth.emptyStatus">Choose a date and generate the synthetic chain.</div>
+        </div>
+
+        <div class="panel-card" style="margin-bottom: 18px;">
+          <div style="display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:14px;">
+            <div>
+              <h3 class="panel-title" style="margin:0 0 6px 0;">Schwab Calibration</h3>
+              <div style="font-size:13px; color:var(--text-muted); line-height:1.45;">
+                Local authenticated calibration compares Schwab option quotes with the synthetic chain. Remote demos use saved non-sensitive calibration parameters.
+              </div>
+            </div>
+            <div id="calibration-version-pill" style="border:1px solid var(--border); border-radius:999px; padding:6px 10px; color:var(--text-muted); font-size:12px; white-space:nowrap;">Version -</div>
+          </div>
+          <div style="display:grid; grid-template-columns: 120px 120px 120px 120px 120px auto; gap:12px; align-items:end;">
+            <div class="input-group">
+              <label>Ticker</label>
+              <input type="text" id="calibration-ticker" value="QQQ">
+            </div>
+            <div class="input-group">
+              <label>Strike Count</label>
+              <input type="number" id="calibration-strike-count" value="60" min="10" max="200" step="10">
+            </div>
+            <div class="input-group">
+              <label>DTE Min</label>
+              <input type="number" id="calibration-dte-min" value="5" min="0" max="365">
+            </div>
+            <div class="input-group">
+              <label>DTE Max</label>
+              <input type="number" id="calibration-dte-max" value="75" min="1" max="365">
+            </div>
+            <div class="input-group">
+              <label>Max Spread %</label>
+              <input type="number" id="calibration-max-spread" value="35" min="1" max="200" step="1">
+            </div>
+            <button class="btn btn-primary" id="calibration-run-button" onclick="runChainCalibration()">Calibrate from Schwab</button>
+          </div>
+          <div id="calibration-status" style="margin-top:10px; font-size:12px; color:var(--text-muted);">Saved calibration parameters are active when available. Schwab credentials stay local and are not required on the remote demo.</div>
+          <div class="stats-grid" style="grid-template-columns: repeat(5, minmax(140px, 1fr)); gap: 12px; margin-top: 14px;">
+            <div class="stat-card" style="padding: 14px;">
+              <div class="stat-label">Matched</div>
+              <div class="stat-value" id="calibration-matched" style="font-size:18px;">-</div>
+            </div>
+            <div class="stat-card" style="padding: 14px;">
+              <div class="stat-label">Before Median</div>
+              <div class="stat-value" id="calibration-before-median" style="font-size:18px;">-</div>
+            </div>
+            <div class="stat-card" style="padding: 14px;">
+              <div class="stat-label">After Median</div>
+              <div class="stat-value" id="calibration-after-median" style="font-size:18px;">-</div>
+            </div>
+            <div class="stat-card" style="padding: 14px;">
+              <div class="stat-label">Before P90</div>
+              <div class="stat-value" id="calibration-before-p90" style="font-size:18px;">-</div>
+            </div>
+            <div class="stat-card" style="padding: 14px;">
+              <div class="stat-label">After P90</div>
+              <div class="stat-value" id="calibration-after-p90" style="font-size:18px;">-</div>
+            </div>
+          </div>
+          <div style="overflow:auto; max-height: 280px; margin-top:14px;">
+            <table style="width:100%; border-collapse: collapse; font-size:12px;">
+              <thead style="position:sticky; top:0; background:var(--bg-secondary); z-index:1;">
+                <tr style="border-bottom:1px solid var(--border); color:var(--text-muted); text-align:right;">
+                  <th style="padding:10px; text-align:left;">Contract</th>
+                  <th style="padding:10px;">DTE</th>
+                  <th style="padding:10px;">Strike</th>
+                  <th style="padding:10px;">Real Mid</th>
+                  <th style="padding:10px;">Synth Mid</th>
+                  <th style="padding:10px;">Before Err</th>
+                  <th style="padding:10px;">After Err</th>
+                  <th style="padding:10px;">Bucket</th>
+                </tr>
+              </thead>
+              <tbody id="calibration-sample-body">
+                <tr><td colspan="8" style="padding:20px; text-align:center; color:var(--text-muted);">No calibration run yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px;">
+          <div class="stat-card" style="padding: 14px;">
+            <div class="stat-label" data-i18n="fields.spot">Spot</div>
+            <div class="stat-value" id="synth-chain-spot" style="font-size:18px;">-</div>
+          </div>
+          <div class="stat-card" style="padding: 14px;">
+            <div class="stat-label" data-i18n="fields.actualDate">Actual Date</div>
+            <div class="stat-value" id="synth-chain-actual-date" style="font-size:18px;">-</div>
+          </div>
+          <div class="stat-card" style="padding: 14px;">
+            <div class="stat-label" data-i18n="fields.rsi">RSI</div>
+            <div class="stat-value" id="synth-chain-rsi" style="font-size:18px;">-</div>
+          </div>
+          <div class="stat-card" style="padding: 14px;">
+            <div class="stat-label" data-i18n="fields.hv20d">HV 20D</div>
+            <div class="stat-value" id="synth-chain-hv" style="font-size:18px;">-</div>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px;">
+            <h3 class="panel-title" style="margin:0;" data-i18n="synth.generatedChain">Generated Chain</h3>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <select id="synth-chain-type-filter" class="report-select" onchange="renderSyntheticChainTable()">
+                <option value="ALL" data-i18n="filters.all">All</option>
+                <option value="CALL" data-i18n="filters.calls">Calls</option>
+                <option value="PUT" data-i18n="filters.puts">Puts</option>
+              </select>
+              <select id="synth-chain-dte-filter" class="report-select" onchange="renderSyntheticChainTable()">
+                <option value="ALL" data-i18n="filters.allDte">All DTE</option>
+              </select>
+              <select id="synth-chain-sort" class="report-select" onchange="renderSyntheticChainTable()">
+                <option value="ATM">ATM First</option>
+                <option value="STRIKE_ASC">Strike Asc</option>
+                <option value="DELTA">Delta Target</option>
+              </select>
+            </div>
+          </div>
+          <div style="overflow:auto; max-height: 620px;">
+            <table style="width:100%; border-collapse: collapse; font-size:12px;">
+              <thead style="position:sticky; top:0; background:var(--bg-secondary); z-index:1;">
+                <tr style="border-bottom:1px solid var(--border); color:var(--text-muted); text-align:right;">
+                  <th style="padding:10px; text-align:left;" data-i18n="fields.date">Date</th>
+                  <th style="padding:10px;">DTE</th>
+                  <th style="padding:10px; text-align:left;" data-i18n="fields.type">Type</th>
+                  <th style="padding:10px;" data-i18n="fields.strike">Strike</th>
+                  <th style="padding:10px;" data-i18n="fields.bid">Bid</th>
+                  <th style="padding:10px;" data-i18n="fields.ask">Ask</th>
+                  <th style="padding:10px;" data-i18n="fields.mid">Mid</th>
+                  <th style="padding:10px;" data-i18n="fields.premium">Premium</th>
+                  <th style="padding:10px;">IV</th>
+                  <th style="padding:10px;">Delta</th>
+                  <th style="padding:10px;">Gamma</th>
+                  <th style="padding:10px;">Theta</th>
+                  <th style="padding:10px;">Vega</th>
+                </tr>
+              </thead>
+              <tbody id="synth-chain-body">
+                <tr><td colspan="13" style="padding:24px; text-align:center; color:var(--text-muted);" data-i18n="synth.noChain">No chain generated yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+
+
+
+      <!-- ============================================ -->
+      <!-- PAGE: OPTIONS                                -->
+      <!-- ============================================ -->
+      <div class="page" id="page-options">
+        <div class="panel-card options-workbench-header">
+          <div class="options-title-row">
+            <div>
+              <h2 class="options-page-title">Options Analysis</h2>
+              <p class="options-page-subtitle">Explore chains, scan candidates, and validate strategy ideas.</p>
+            </div>
+            <div id="options-refresh-status" class="options-status-line">Ready</div>
+          </div>
+
+          <div class="options-control-grid">
+            <div class="input-group">
+              <label>Ticker</label>
+              <input type="text" id="options-chain-ticker" value="TSLA" onkeydown="handleOptionsTickerKey(event)">
+            </div>
+            <div class="input-group">
+              <label>Expiration</label>
+              <select id="options-expiration-filter" class="report-select" onchange="renderOptionsChainTable()">
+                <option value="ALL">All expirations</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Contract</label>
+              <select id="options-type-filter" class="report-select" onchange="renderOptionsChainTable()">
+                <option value="BOTH">Calls & Puts</option>
+                <option value="CALL">Calls</option>
+                <option value="PUT">Puts</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Delta</label>
+              <select id="options-delta-filter" class="report-select" onchange="renderOptionsChainTable()">
+                <option value="ALL">All deltas</option>
+                <option value="ATM">Near ATM</option>
+                <option value="WHEEL">Wheel puts</option>
+                <option value="COVERED_CALL">Covered calls</option>
+                <option value="LEAPS">LEAPS calls</option>
+              </select>
+            </div>
+            <button class="btn btn-primary options-refresh-btn" onclick="refreshOptionsData()">Refresh</button>
+          </div>
+
+          <div class="interval-tabs options-tabs">
+            <button class="interval-tab active" id="tab-options-chain" onclick="switchOptionsTab('chain')">Chain</button>
+            <button class="interval-tab" id="tab-options-candidates" onclick="switchOptionsTab('candidates')">Candidates</button>
+            <button class="interval-tab" id="tab-options-builder" onclick="switchOptionsTab('builder')">Strategy Builder</button>
+            <button class="interval-tab" id="tab-options-backtest" onclick="switchOptionsTab('backtest')">Backtest</button>
+          </div>
+        </div>
+
+        <div id="schwab-auth-section" class="panel-card options-auth-panel" style="display:none;">
+          <h3 class="panel-title">Authorization Required</h3>
+          <p style="font-size:13px; margin-bottom:10px; color: var(--text-primary);">Refresh your market data token from the backend when authorization expires.</p>
+          <div style="display:flex; gap:10px; flex-wrap: wrap;">
+            <input type="text" id="schwab-auth-code" placeholder="OAuth code or redirect URL" style="flex:1; min-width:220px; padding:8px; border-radius:4px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:white;">
+            <button class="btn btn-primary" onclick="submitSchwabOAuthCode()">Save Token</button>
+            <button class="btn btn-outline" style="border: 1px solid var(--accent-blue); color: var(--accent-blue);" onclick="showSchwabAuthUrl()">Get Auth URL</button>
+          </div>
+          <div id="schwab-auth-msg" style="margin-top:8px; font-size:12px;"></div>
+        </div>
+
+        <div class="options-summary-strip">
+          <div class="stat-card options-summary-card">
+            <div class="stat-label">Underlying</div>
+            <div class="stat-value" id="options-underlying-price">-</div>
+          </div>
+          <div class="stat-card options-summary-card">
+            <div class="stat-label">Contracts</div>
+            <div class="stat-value" id="options-contract-count">-</div>
+          </div>
+          <div class="stat-card options-summary-card">
+            <div class="stat-label">ATM Strike</div>
+            <div class="stat-value" id="options-atm-strike">-</div>
+          </div>
+          <div class="stat-card options-summary-card">
+            <div class="stat-label">Spread Health</div>
+            <div class="stat-value" id="options-spread-health">-</div>
+          </div>
+        </div>
+
+        <div id="options-content-chain" class="panel-card options-chain-panel">
+          <div class="options-table-toolbar">
+            <h3 class="panel-title">Option Chain</h3>
+            <div id="options-chain-meta" class="options-chain-meta">Load a chain to begin.</div>
+          </div>
+          <div class="options-chain-table-wrap">
+            <table class="options-chain-table">
+              <thead>
+                <tr>
+                  <th colspan="6" class="call-head">Calls</th>
+                  <th class="strike-head">Strike</th>
+                  <th colspan="6" class="put-head">Puts</th>
+                </tr>
+                <tr>
+                  <th>Bid</th><th>Ask</th><th>Delta</th><th>IV</th><th>OI</th><th>Vol</th>
+                  <th>Strike</th>
+                  <th>Bid</th><th>Ask</th><th>Delta</th><th>IV</th><th>OI</th><th>Vol</th>
+                </tr>
+              </thead>
+              <tbody id="options-chain-body">
+                <tr><td colspan="13" class="options-empty-row">Choose a ticker and refresh the chain.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="options-content-candidates" style="display:none;">
+          <div class="options-candidate-grid">
+            <div class="panel-card">
+              <h3 class="panel-title">Wheel Puts</h3>
+              <div id="options-wheel-candidates" class="options-candidate-list"></div>
+            </div>
+            <div class="panel-card">
+              <h3 class="panel-title">Covered Calls</h3>
+              <div id="options-covered-call-candidates" class="options-candidate-list"></div>
+            </div>
+            <div class="panel-card">
+              <h3 class="panel-title">LEAPS Calls</h3>
+              <div id="options-leaps-candidates" class="options-candidate-list"></div>
+            </div>
+            <div class="panel-card">
+              <h3 class="panel-title">Credit Spread Shorts</h3>
+              <div id="options-spread-candidates" class="options-candidate-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="options-content-builder" class="panel-card" style="display:none;">
+          <h3 class="panel-title">Strategy Builder</h3>
+          <div id="options-builder-empty" style="padding:28px; text-align:center; color:var(--text-muted);">Click contracts in the chain to start building a strategy.</div>
+          <div id="options-builder-legs" class="options-builder-legs"></div>
+        </div>
+
+        <!-- Simulated Tab Content -->
+        <div id="options-content-simulated" style="display:none;">
+          <div class="panel-card">
+            <h3 class="panel-title">🔮 Synthetic Option Chain (Black-Scholes Model)</h3>
+            <div style="margin-bottom: 16px; display: flex; gap: 20px; font-size: 13px; color: var(--text-muted);">
+              <span>Spot: <b id="sim-spot">--</b></span>
+              <span>RSI: <b id="sim-rsi">--</b></span>
+              <span>HV(20d): <b id="sim-hv">--</b></span>
+            </div>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <thead>
+                  <tr style="border-bottom: 1px solid var(--border); text-align: left; color: var(--text-muted);">
+                    <th style="padding: 10px;">DTE</th>
+                    <th style="padding: 10px;">Type</th>
+                    <th style="padding: 10px;">Strike</th>
+                    <th style="padding: 10px;">Premium</th>
+                    <th style="padding: 10px;">Bid/Ask</th>
+                    <th style="padding: 10px;">Delta</th>
+                    <th style="padding: 10px;">Theta</th>
+                    <th style="padding: 10px;">IV</th>
+                  </tr>
+                </thead>
+                <tbody id="sim-options-body">
+                  <tr><td colspan="8" style="padding:20px; text-align:center; color:var(--text-muted);">Click Generate to see simulated data</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Backtest Tab Content -->
+        <div id="options-content-backtest" style="display:none;">
+          <div class="grid-2" style="gap: 24px; align-items: start;">
+            <div class="panel-card">
+              <h3 class="panel-title">Option Strategy Backtest</h3>
+              <div class="auth-body" style="padding:0; background:none;">
+                <div class="input-group">
+                  <label>Strategy Type</label>
+                  <select id="opt-bt-type" class="report-select" style="width:100%">
+                    <option value="WHEELS">WHEELS (Sell Put -> Assigned -> Sell Call)</option>
+                    <option value="LEAPS">LEAPS (Deep ITM Long Call Rolling)</option>
+                    <option value="SPREADS">BULL PUT SPREAD (Credit Spread)</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label>Ticker</label>
+                  <input type="text" id="opt-bt-ticker" value="TSLA">
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                  <div class="input-group">
+                    <label>Start Date</label>
+                    <input type="date" id="opt-bt-start" value="2024-01-01">
+                  </div>
+                  <div class="input-group">
+                    <label>End Date</label>
+                    <input type="date" id="opt-bt-end" value="2025-01-01">
+                  </div>
+                </div>
+                <button class="btn btn-ai-glow" style="width:100%; margin-top:16px" onclick="runOptionBacktest()">🚀 Run Option Backtest</button>
+              </div>
+            </div>
+            <div class="panel-card" id="opt-bt-results" style="display:none">
+              <h3 class="panel-title">Backtest Results</h3>
+              <div id="opt-bt-summary" style="font-size:14px; line-height:1.6"></div>
+              <div id="opt-bt-chart" style="height:250px; width:100%; margin-top:20px; border-radius:8px; border:1px solid var(--border);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- ============================================ -->
       <!-- PAGE: AI INSIGHTS                            -->
@@ -367,8 +1122,8 @@
             <div style="padding: 18px 22px; border-bottom: 1px solid var(--border); background: rgba(139,92,246,0.05);">
               <div class="panel-title" style="margin-bottom: 12px; color: var(--accent-blue);">➕ Add to Watchlist</div>
               <div style="display: flex; gap: 10px;">
-                <input type="text" id="add-stock-input" placeholder="Enter ticker (e.g. NVDA)" style="flex: 1; background: var(--bg-secondary); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; color: var(--text-primary);">
-                <button class="btn btn-primary" onclick="addStockFromInput()">Add Stock</button>
+                <input type="text" id="ai-add-stock-input" placeholder="Enter ticker (e.g. NVDA)" style="flex: 1; background: var(--bg-secondary); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; color: var(--text-primary);">
+                <button class="btn btn-primary" onclick="addStockFromInput('ai-add-stock-input')">Add Stock</button>
               </div>
               <div id="add-stock-status" style="font-size: 11px; margin-top: 6px; color: var(--text-muted);"></div>
             </div>
@@ -400,32 +1155,32 @@
             <div class="report-body">
               <div class="report-section">
                 <h4>📌 Market Overview</h4>
-                <p>Broad market shows resilience this session, with the Nasdaq composite gaining 1.1% on the back of cooling CPI data. The Fed is signaling a pause in rate hikes, which is broadly supportive for equities—especially high-multiple tech names within QQQ.</p>
+                <p id="ai-market-overview">Loading real market overview...</p>
               </div>
 
               <div class="report-section">
                 <h4>📊 Technical Analysis</h4>
-                <p>QQQ is reclaiming its 20-day SMA at $443.10 with expanding momentum (MACD histogram positive). RSI at 58.4 leaves room for further upside. VOO remains in a neutral consolidation phase. TSLA has broken below both SMA20 and SMA50, with RSI in the oversold territory (38.2)—a recovery bounce is possible, but the downtrend remains intact.</p>
+                <p id="ai-technical-analysis">Loading real technical analysis...</p>
               </div>
 
               <div class="report-section">
                 <h4>📰 News Sentiment Analysis</h4>
-                <p>News sentiment across our watchlist is mixed. QQQ benefits from bullish macro tailwinds (AI infrastructure spending, potential Fed pause). TSLA faces headwinds from weaker-than-expected delivery figures and ongoing political uncertainty around EV tax incentives. VOO sentiment is neutral to slightly positive.</p>
+                <p id="ai-news-sentiment">Loading real news sentiment...</p>
               </div>
 
               <div class="report-section">
                 <h4>⚠️ Risk Assessment</h4>
-                <p>Key risks this week: (1) Fed speakers could shift rate expectations intraday. (2) Geopolitical tensions add tail risk to energy and tech sectors. (3) TSLA earnings next week—elevated IV in options market suggests expect high volatility.</p>
+                <p id="ai-risk-assessment">Loading risk assessment...</p>
               </div>
             </div>
 
             <div class="risk-meter">
               <div class="risk-label-row">
                 <span>Overall Portfolio Risk Level</span>
-                <span class="text-blue" style="font-weight:600">Medium</span>
+                <span class="text-blue" id="ai-risk-level" style="font-weight:600">Loading</span>
               </div>
               <div class="gauge-bar">
-                <div class="gauge-fill" style="width:45%;background:linear-gradient(90deg,var(--accent-green),#fbbf24)"></div>
+                <div class="gauge-fill" id="ai-risk-gauge" style="width:45%;background:linear-gradient(90deg,var(--accent-green),#fbbf24)"></div>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted)">
                 <span>LOW</span><span>MEDIUM</span><span>HIGH</span>
@@ -444,23 +1199,9 @@
                     <div class="report-date">AI-analyzed • Updated hourly</div>
                   </div>
                 </div>
-                <button class="btn btn-ghost" style="font-size:12px">Refresh</button>
+                <button class="btn btn-ghost" style="font-size:12px" onclick="renderNews()">Refresh</button>
               </div>
               <div class="news-list" id="news-list"></div>
-            </div>
-
-            <!-- Backtesting Teaser -->
-            <div class="panel-card" style="margin-top:16px;border:1px dashed rgba(139,92,246,0.4);background:rgba(139,92,246,0.05)">
-              <div style="text-align:center;padding:12px">
-                <div style="font-size:32px;margin-bottom:8px">⏪</div>
-                <div style="font-size:14px;font-weight:600;margin-bottom:6px">Backtesting Engine</div>
-                <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px">
-                  Validate your AI signals against up to 30 years of historical daily data. Coming in Phase 4.
-                </div>
-                <button class="btn btn-ghost" style="width:100%;justify-content:center;border-color:rgba(139,92,246,0.4);color:#a78bfa">
-                  🔔 Notify Me When Ready
-                </button>
-              </div>
             </div>
           </div>
 
@@ -470,6 +1211,45 @@
     </div><!-- /content -->
   </div><!-- /main -->
 </div><!-- /layout -->
+
+      </div> <!-- Close .content -->
+    </div> <!-- Close .main -->
+  </div> <!-- Close .layout -->
+
+<!-- ===== Strategy Modal ===== -->
+<div id="strategy-modal" class="auth-overlay" style="display:none">
+  <div class="auth-modal" style="max-width: 500px;">
+    <button onclick="hideStrategyModal()" style="position:absolute; top:15px; right:15px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:20px">✕</button>
+    <div class="auth-header">
+      <h2 id="strategy-modal-title">Create Strategy</h2>
+      <p>Define your technical indicators rules</p>
+    </div>
+    <div class="auth-body">
+      <input type="hidden" id="strat-id" value="">
+      <div class="input-group">
+        <label>Strategy Name</label>
+        <input type="text" id="strat-name" placeholder="e.g. RSI Mean Reversion">
+      </div>
+      <div class="input-group">
+        <label>Description</label>
+        <textarea id="strat-desc" placeholder="Explain your logic..." style="width:100%; height:80px; background:var(--bg-secondary); border:1px solid var(--border); color:white; border-radius:8px; padding:10px; font-family:inherit;"></textarea>
+      </div>
+      
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+        <div class="input-group">
+          <label>RSI Buy Level (<)</label>
+          <input type="number" id="strat-rsi-buy" value="30">
+        </div>
+        <div class="input-group">
+          <label>RSI Sell Level (> )</label>
+          <input type="number" id="strat-rsi-sell" value="70">
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-save-strategy" style="width:100%; justify-content:center; margin-top:20px" onclick="saveStrategy()">Save Strategy</button>
+    </div>
+  </div>
+</div>
 
 <script src="app.js"></script>
 <script>

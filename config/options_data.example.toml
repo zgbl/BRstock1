@@ -1,0 +1,24 @@
+[providers]
+default = "moomoo"
+
+[providers.moomoo]
+host = "127.0.0.1"
+port = 11111
+request_limit = 10
+market = "US"
+
+[providers.tradier]
+api_key = "YOUR_TRADIER_TOKEN"
+account_id = "YOUR_ACCOUNT_ID"
+base_url = "https://sandbox.tradier.com/v1"
+
+[providers.schwab]
+app_key = "YOUR_APP_KEY"
+app_secret = "YOUR_APP_SECRET"
+callback_url = "https://127.0.0.1"
+
+[settings]
+leaps_target_deltas = [0.45, 0.60, 0.70]
+weekly_csp_delta = 0.25
+weekly_cc_delta = 0.30
+max_spread_pct = 0.08

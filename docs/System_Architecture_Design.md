@@ -1,8 +1,8 @@
 # 智能股票技术分析与回测平台 - 系统设计文档
 
 > **项目名称**: 智能股票分析与决策验证平台 (AI-Driven Stock Analysis & Backtesting Platform)
-> **文档版本**: v1.0
-> **更新日期**: 2026-04-19
+> **文档版本**: v1.2 (Modular Architecture)
+> **更新日期**: 2026-05-09
 
 ---
 
@@ -119,7 +119,31 @@ graph TD
 
 ---
 
-## 4. 技术栈推荐选型 (Tech Stack Reference)
+## 4. 后端目录结构与模块化设计 (Backend Structure)
+
+为了保证代码的可维护性和扩展性，后端 API 采用了模块化设计，将业务逻辑从 `main.py` 中剥离。
+
+### 4.1 目录布局
+```text
+services/backend_api/
+├── main.py              # 程序入口：负责 App 初始化、路由注册
+├── config.py            # 全局配置：DB 连接、AI 引擎、环境变量
+├── dependencies.py      # 共享依赖：认证逻辑 (JWT/OAuth2)
+└── routes/              # 业务路由模块 (APIRouter)
+    ├── auth.py          # 用户认证 (登录/注册/重置)
+    ├── stocks.py        # 股票数据 (自选股/个股摘要/AI分析)
+    ├── options.py       # 期权模块 (模拟期权链/期权回测/Moomoo)
+    └── strategies.py    # 策略管理 (用户策略/回测执行)
+```
+
+### 4.2 设计模式
+*   **配置中心化**: 所有的外部服务初始化（Gemini, DB, OptionSynth）统一在 `config.py` 完成，避免重复创建连接。
+*   **路由解耦**: 使用 FastAPI `APIRouter` 实现各业务线的物理隔离。
+*   **认证统一**: 全局共享 `get_current_user` 依赖，确保所有受保护接口的一致性。
+
+---
+
+## 5. 技术栈推荐选型 (Tech Stack Reference)
 
 | 领域 | 推荐技术栈 | 理由 |
 | :--- | :--- | :--- |
@@ -132,17 +156,19 @@ graph TD
 
 ---
 
-## 5. 项目开发路线图 (Roadmap)
+## 6. 项目开发路线图 (Roadmap)
 
 此项目体量庞大，建议分阶段敏捷开发：
 
-*   **Phase 1：基础设施建设 (MVP)**
+*   **Phase 1：基础设施建设 (MVP) - [COMPLETED]**
     *   搭建数据库，实现定时下载 Yahoo Finance/Tushare 的股票数据并存储。
-    *   构建后端 API，能输出基础的 K 线数据和几项简单技术指标（如 SMA, MACD）。
+    *   构建后端 API，能输出基础的 K 线数据和几项简单技术指标。
     *   开发前端界面，完成基础行情的可视化。
-*   **Phase 2：高级分析与个性化**
-    *   扩展技术指标计算 API，实现微服务架构。
-    *   加入用户系统，实现自选股功能及指标参数调优界面。
+
+*   **Phase 2：高级分析与模块化架构 - [COMPLETED]**
+    *   **架构重构**: 完成后端从单体脚本到模块化路由的转型。
+    *   **期权引擎**: 实现 `OptionSynth` 模拟期权链生成器及车轮策略回测。
+    *   扩展技术指标计算 API，实现微服务架构设计。
 *   **Phase 3：AI 分析师上线**
     *   整合爬虫爬取相关新闻。
     *   接入大模型 API，基于每日技术形态和新闻综合输出 "AI 股票分析日报"。

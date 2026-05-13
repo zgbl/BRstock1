@@ -1,0 +1,24 @@
+# Keep Cloud Build upload context small.
+.git/
+.DS_Store
+
+# Local secrets and runtime state
+.env
+Data/
+__pycache__/
+*.pyc
+.venv/
+env/
+
+# Local backups/releases/docs are not needed for Cloud Run builds.
+release/
+docs/
+scratch/
+
+# Moomoo/OpenD is no longer part of deployment.
+API/Moomoo/
+deploy/moomoo_opend/
+
+# Misc local artifacts
+backup.sh
+test1.txt

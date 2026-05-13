@@ -7,8 +7,10 @@ Cloud Run Job 每次运行此脚本一次，执行完毕即退出。
 """
 import yfinance as yf
 import os
+import re
 import sys
 from dotenv import load_dotenv
+from sqlalchemy import text
 
 # 加载根目录下的 .env
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
@@ -20,24 +22,58 @@ if project_root not in sys.path:
 
 from internal.db_client.database import StockDB
 
-# ── 配置要抓取的标的 ──────────────────────────────────────────
-TARGETS = [
-    "QQQ",   # NASDAQ ETF
-    "VOO",   # S&P 500 ETF
-    "TSLA",  # Tesla
-    "NVDA",  # NVIDIA
-    "AAPL",  # Apple
-    "MSFT",  # Microsoft
-    "AMZN",  # Amazon
-    "META",  # Meta
-    "GOOGL", # Google
+DEFAULT_TARGETS = [
+    symbol.strip().upper()
+    for symbol in os.getenv(
+        "MARKET_DATA_REFRESH_SYMBOLS",
+        "QQQ,VOO,SPY,^VIX,TSLA,NVDA,AAPL,MSFT,AMZN,META,GOOGL",
+    ).split(",")
+    if symbol.strip()
 ]
 
-def fetch_and_update_to_db(symbols: list):
+def normalize_symbol(value: str):
+    symbol = (value or "").strip().upper()
+    if not re.fullmatch(r"\^?[A-Z][A-Z0-9.-]{0,14}", symbol):
+        return None
+    return symbol
+
+def unique_symbols(symbols):
+    out = []
+    seen = set()
+    for raw in symbols:
+        symbol = normalize_symbol(raw)
+        if symbol and symbol not in seen:
+            out.append(symbol)
+            seen.add(symbol)
+    return out
+
+def load_watchlist_symbols(db: StockDB):
+    query = text("""
+        SELECT DISTINCT ticker
+        FROM user_watchlists
+        WHERE ticker IS NOT NULL AND ticker <> ''
+        ORDER BY ticker ASC
+    """)
+    try:
+        with db.engine.connect() as conn:
+            rows = conn.execute(query).fetchall()
+        return unique_symbols(row[0] for row in rows)
+    except Exception as e:
+        print(f"⚠️ 无法读取 user_watchlists，将只刷新默认列表: {e}")
+        return []
+
+def load_refresh_symbols(db: StockDB):
+    watchlist_symbols = load_watchlist_symbols(db)
+    symbols = unique_symbols([*DEFAULT_TARGETS, *watchlist_symbols])
+    print(f"📋 默认标的: {', '.join(DEFAULT_TARGETS) if DEFAULT_TARGETS else '-'}")
+    print(f"📋 Watchlist 标的: {', '.join(watchlist_symbols) if watchlist_symbols else '-'}")
+    return symbols
+
+def fetch_and_update_to_db(symbols: list, db: StockDB = None):
     """
     抓取 Yahoo Finance 5分钟 K 线数据并写入数据库 (Neon DB / SQLite)。
     """
-    db = StockDB()
+    db = db or StockDB()
     db_type = "Neon PostgreSQL" if "neon.tech" in db.db_url else "Local SQLite"
     print(f"📦 数据库类型: {db_type}")
 
@@ -68,6 +104,8 @@ def fetch_and_update_to_db(symbols: list):
 
 if __name__ == "__main__":
     print("🚀 BRStock Data Pipeline 启动...")
-    print(f"   目标标的: {', '.join(TARGETS)}")
-    fetch_and_update_to_db(TARGETS)
+    db = StockDB()
+    targets = load_refresh_symbols(db)
+    print(f"   目标标的: {', '.join(targets)}")
+    fetch_and_update_to_db(targets, db=db)
     print("✨ 数据抓取任务完成。")

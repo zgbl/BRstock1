@@ -4,6 +4,9 @@ FROM python:3.10-slim
 # 设置工作目录
 WORKDIR /app
 
+# Cloud Build/Docker 没有交互式 TTY，避免 apt/debconf 尝试打开交互前端。
+ENV DEBIAN_FRONTEND=noninteractive
+
 # 安装必要的系统库
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
