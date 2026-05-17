@@ -77,10 +77,42 @@ const I18N = {
     'page.synthChain': '🧪 Synthetic Chain',
     'settings.language': 'Language',
     'auth.login': 'Login',
+    'auth.loginTitle': 'Login to BRStock AI',
+    'auth.loginSubtitle': 'Access your personal watchlist and AI insights',
+    'auth.registerTitle': 'Create an Account',
+    'auth.registerSubtitle': 'Join our intelligent market community',
+    'auth.resetTitle': 'Reset Password',
+    'auth.resetSubtitle': 'Enter your email and Secret PIN to reset',
+    'auth.backTo': 'Back to',
+    'auth.processing': 'Processing...',
+    'auth.requiredFields': 'Please fill in required fields',
+    'auth.registerFailed': 'Registration failed',
+    'auth.registerSuccess': 'Registration successful! Please login.',
+    'auth.resetFailed': 'Reset failed',
+    'auth.resetSuccess': 'Password reset successful! Please login with your new password.',
+    'auth.invalidLogin': 'Invalid email or password',
+    'auth.passwordMismatch': 'Passwords do not match',
+    'auth.passwordUpdated': 'Password updated successfully!',
+    'auth.updateFailed': 'Update failed',
+    'auth.email': 'Email Address',
+    'auth.password': 'Password',
+    'auth.fullName': 'Full Name',
+    'auth.resetPin': 'Secret Reset PIN (6 digits)',
+    'auth.newPassword': 'New Password',
+    'auth.noAccount': "Don't have an account?",
+    'auth.signUp': 'Sign Up',
+    'auth.forgotPassword': 'Forgot Password?',
+    'auth.changePasswordTitle': 'Change Password',
+    'auth.changePasswordSubtitle': 'Ensure your account stays secure',
+    'auth.oldPassword': 'Old Password',
+    'auth.confirmNewPassword': 'Confirm New Password',
+    'auth.updatePassword': 'Update Password',
+    'auth.recoveryPlaceholder': 'Used for recovery',
     'auth.logout': 'Logout',
     'auth.loggedInAs': 'Logged in as:',
     'auth.changePassword': 'Change Password',
     'status.dataLive': 'Data Live',
+    'common.error': 'Error',
     'search.placeholder': 'Search ticker...',
     'actions.addStock': 'Add Stock',
     'actions.runBacktest': 'Run Backtest Simulation',
@@ -149,6 +181,7 @@ const I18N = {
     'fields.hv20d': 'HV 20D',
     'fields.type': 'Type',
     'fields.strike': 'Strike',
+    'fields.delta': 'Delta',
     'fields.bid': 'Bid',
     'fields.ask': 'Ask',
     'fields.mid': 'Mid',
@@ -176,7 +209,76 @@ const I18N = {
     'filters.all': 'All',
     'filters.calls': 'Calls',
     'filters.puts': 'Puts',
-    'filters.allDte': 'All DTE'
+    'filters.allDte': 'All DTE',
+    'options.title': 'Options Analysis',
+    'options.subtitle': 'Explore chains, scan candidates, and validate strategy ideas.',
+    'options.expiration': 'Expiration',
+    'options.contract': 'Contract',
+    'options.allExpirations': 'All expirations',
+    'options.callsPuts': 'Calls & Puts',
+    'options.allDeltas': 'All deltas',
+    'options.nearAtm': 'Near ATM',
+    'options.wheelPuts': 'Wheel puts',
+    'options.coveredCalls': 'Covered calls',
+    'options.leapsCalls': 'LEAPS calls',
+    'options.refresh': 'Refresh',
+    'options.chain': 'Chain',
+    'options.candidates': 'Candidates',
+    'options.builder': 'Strategy Builder',
+    'options.backtest': 'Backtest',
+    'options.authRequired': 'Authorization Required',
+    'options.authHelp': 'Refresh your market data token from the backend when authorization expires.',
+    'options.oauthPlaceholder': 'OAuth code or redirect URL',
+    'options.saveToken': 'Save Token',
+    'options.savingToken': 'Saving Schwab token...',
+    'options.tokenSaveFailed': 'Failed to save Schwab token',
+    'options.networkError': 'Network error',
+    'options.getAuthUrl': 'Get Auth URL',
+    'options.authRequestFailed': 'Failed to request code',
+    'options.underlying': 'Underlying',
+    'options.contracts': 'Contracts',
+    'options.atmStrike': 'ATM Strike',
+    'options.spreadHealth': 'Spread Health',
+    'options.optionChain': 'Option Chain',
+    'options.loadChain': 'Load a chain to begin.',
+    'options.chooseTicker': 'Choose a ticker and refresh the chain.',
+    'options.noContracts': 'No contracts match the current filters.',
+    'options.strategyBuilderEmpty': 'Click contracts in the chain to start building a strategy.',
+    'options.creditSpreadShorts': 'Credit Spread Shorts',
+    'options.optionBacktest': 'Option Strategy Backtest',
+    'options.strategyType': 'Strategy Type',
+    'options.runOptionBacktest': 'Run Option Backtest',
+    'options.backtestResults': 'Backtest Results',
+    'options.ready': 'Ready',
+    'options.checkingStatus': 'Checking market data status...',
+    'options.authorizationNeeded': 'Authorization needed',
+    'options.checkingChain': 'Checking chain directly...',
+    'options.statusError': 'Status Error',
+    'options.refreshing': 'Refreshing {ticker}...',
+    'options.usingCached': 'Using cached {ticker} chain...',
+    'options.updated': '{ticker} updated {time} · cache {cacheAge}s',
+    'options.fetchFailed': 'Failed to fetch real-time data from Schwab.',
+    'options.authRequiredStatus': 'Schwab authorization required.',
+    'options.authExpired': 'Authorization expired.',
+    'options.refreshFailed': 'Option chain refresh failed.',
+    'options.filteredMeta': '{ticker} · {visible} ATM-centered rows · {total} filtered contracts · {time}',
+    'options.noCandidates': 'No candidates match the current chain.',
+    'options.wheelCandidate': 'Cash-secured put candidate',
+    'options.coveredCallCandidate': 'Covered call candidate',
+    'options.leapsCandidate': 'Long-dated directional candidate',
+    'options.shortLegCandidate': 'Potential short leg',
+    'options.legs': 'Legs {count}',
+    'options.netDebit': 'Net Debit',
+    'options.netCredit': 'Net Credit',
+    'options.clear': 'Clear',
+    'options.remove': 'Remove',
+    'options.tokenSaved': 'Schwab token saved.',
+    'options.loadingAuthUrl': 'Loading Schwab authorization URL...',
+    'options.openAuthUrl': 'Open this URL, authorize, then paste the redirect URL above:',
+    'options.authUrlLabel': 'Schwab authorization URL',
+    'options.healthGood': 'Good',
+    'options.healthWatch': 'Watch',
+    'options.healthWide': 'Wide'
   },
   zh: {
     'brand.subtitle': '市场智能',
@@ -198,10 +300,42 @@ const I18N = {
     'page.synthChain': '🧪 合成期权链',
     'settings.language': '语言',
     'auth.login': '登录',
+    'auth.loginTitle': '登录 BRStock AI',
+    'auth.loginSubtitle': '访问你的自选列表和 AI 洞察',
+    'auth.registerTitle': '创建账户',
+    'auth.registerSubtitle': '加入智能市场社区',
+    'auth.resetTitle': '重置密码',
+    'auth.resetSubtitle': '输入邮箱和 Secret PIN 来重置密码',
+    'auth.backTo': '返回',
+    'auth.processing': '处理中...',
+    'auth.requiredFields': '请填写必填项',
+    'auth.registerFailed': '注册失败',
+    'auth.registerSuccess': '注册成功，请登录。',
+    'auth.resetFailed': '重置失败',
+    'auth.resetSuccess': '密码重置成功，请用新密码登录。',
+    'auth.invalidLogin': '邮箱或密码无效',
+    'auth.passwordMismatch': '两次输入的密码不一致',
+    'auth.passwordUpdated': '密码更新成功！',
+    'auth.updateFailed': '更新失败',
+    'auth.email': '邮箱地址',
+    'auth.password': '密码',
+    'auth.fullName': '姓名',
+    'auth.resetPin': '重置 PIN（6 位）',
+    'auth.newPassword': '新密码',
+    'auth.noAccount': '还没有账户？',
+    'auth.signUp': '注册',
+    'auth.forgotPassword': '忘记密码？',
+    'auth.changePasswordTitle': '修改密码',
+    'auth.changePasswordSubtitle': '保持账户安全',
+    'auth.oldPassword': '旧密码',
+    'auth.confirmNewPassword': '确认新密码',
+    'auth.updatePassword': '更新密码',
+    'auth.recoveryPlaceholder': '用于找回账户',
     'auth.logout': '退出',
     'auth.loggedInAs': '当前用户：',
     'auth.changePassword': '修改密码',
     'status.dataLive': '数据在线',
+    'common.error': '错误',
     'search.placeholder': '搜索股票代码...',
     'actions.addStock': '添加股票',
     'actions.runBacktest': '运行回测',
@@ -270,6 +404,7 @@ const I18N = {
     'fields.hv20d': '20日历史波动率',
     'fields.type': '类型',
     'fields.strike': '行权价',
+    'fields.delta': 'Delta',
     'fields.bid': '买价',
     'fields.ask': '卖价',
     'fields.mid': '中间价',
@@ -297,7 +432,76 @@ const I18N = {
     'filters.all': '全部',
     'filters.calls': '看涨',
     'filters.puts': '看跌',
-    'filters.allDte': '全部 DTE'
+    'filters.allDte': '全部 DTE',
+    'options.title': '期权分析',
+    'options.subtitle': '查看期权链，筛选候选合约，并验证策略想法。',
+    'options.expiration': '到期日',
+    'options.contract': '合约',
+    'options.allExpirations': '全部到期日',
+    'options.callsPuts': '看涨和看跌',
+    'options.allDeltas': '全部 Delta',
+    'options.nearAtm': '接近 ATM',
+    'options.wheelPuts': 'Wheel 看跌',
+    'options.coveredCalls': '备兑看涨',
+    'options.leapsCalls': 'LEAPS 看涨',
+    'options.refresh': '刷新',
+    'options.chain': '期权链',
+    'options.candidates': '候选合约',
+    'options.builder': '策略构建',
+    'options.backtest': '回测',
+    'options.authRequired': '需要授权',
+    'options.authHelp': '行情授权过期时，请从后端刷新市场数据 token。',
+    'options.oauthPlaceholder': 'OAuth code 或跳转 URL',
+    'options.saveToken': '保存 Token',
+    'options.savingToken': '正在保存 Schwab token...',
+    'options.tokenSaveFailed': '保存 Schwab token 失败',
+    'options.networkError': '网络错误',
+    'options.getAuthUrl': '获取授权链接',
+    'options.authRequestFailed': '请求授权码失败',
+    'options.underlying': '标的价格',
+    'options.contracts': '合约数',
+    'options.atmStrike': 'ATM 行权价',
+    'options.spreadHealth': '价差质量',
+    'options.optionChain': '期权链',
+    'options.loadChain': '加载期权链后开始。',
+    'options.chooseTicker': '选择股票代码并刷新期权链。',
+    'options.noContracts': '当前筛选条件下没有合约。',
+    'options.strategyBuilderEmpty': '点击期权链中的合约开始构建策略。',
+    'options.creditSpreadShorts': '信用价差卖出腿',
+    'options.optionBacktest': '期权策略回测',
+    'options.strategyType': '策略类型',
+    'options.runOptionBacktest': '运行期权回测',
+    'options.backtestResults': '回测结果',
+    'options.ready': '就绪',
+    'options.checkingStatus': '正在检查市场数据状态...',
+    'options.authorizationNeeded': '需要授权',
+    'options.checkingChain': '正在直接检查期权链...',
+    'options.statusError': '状态错误',
+    'options.refreshing': '正在刷新 {ticker}...',
+    'options.usingCached': '正在使用缓存的 {ticker} 期权链...',
+    'options.updated': '{ticker} 已更新 {time} · 缓存 {cacheAge}s',
+    'options.fetchFailed': '获取 Schwab 实时期权数据失败。',
+    'options.authRequiredStatus': '需要 Schwab 授权。',
+    'options.authExpired': '授权已过期。',
+    'options.refreshFailed': '期权链刷新失败。',
+    'options.filteredMeta': '{ticker} · {visible} 行 ATM 居中 · {total} 条筛选合约 · {time}',
+    'options.noCandidates': '当前期权链下没有匹配候选合约。',
+    'options.wheelCandidate': '现金担保看跌候选',
+    'options.coveredCallCandidate': '备兑看涨候选',
+    'options.leapsCandidate': '长期方向性候选',
+    'options.shortLegCandidate': '潜在卖出腿',
+    'options.legs': '{count} 条腿',
+    'options.netDebit': '净支出',
+    'options.netCredit': '净收入',
+    'options.clear': '清空',
+    'options.remove': '移除',
+    'options.tokenSaved': 'Schwab token 已保存。',
+    'options.loadingAuthUrl': '正在加载 Schwab 授权链接...',
+    'options.openAuthUrl': '打开此链接完成授权，然后把跳转 URL 粘贴到上方：',
+    'options.authUrlLabel': 'Schwab 授权链接',
+    'options.healthGood': '良好',
+    'options.healthWatch': '关注',
+    'options.healthWide': '偏宽'
   }
 };
 
@@ -328,6 +532,17 @@ function setLanguage(lang) {
   localStorage.setItem('brstock_lang', currentLanguage);
   applyI18n();
   updateAuthUI();
+  if (currentPage === 'options') {
+    updateOptionsSummary({
+      underlying_price: optionsChainState.underlying,
+      options: optionsChainState.options,
+    });
+    updateOptionsExpirationFilter();
+    applyI18n();
+    renderOptionsChainTable();
+    renderOptionsCandidates();
+    renderOptionsBuilder();
+  }
 }
 
 function pageTitle(page) {
@@ -385,12 +600,16 @@ async function apiFetch(endpoint, options = {}) {
           if (errorText) message = errorText;
         } catch (_) {}
       }
-      throw new Error(`API Error: ${message}`);
+      const apiError = new Error(`API Error: ${message}`);
+      apiError.status = response.status;
+      apiError.endpoint = endpoint;
+      throw apiError;
     }
     return await response.json();
   } catch (err) {
     apiFetch.lastError = err;
-    console.error(`Failed to fetch ${endpoint}:`, err);
+    const status = err?.status ? `HTTP ${err.status}` : (err?.name || 'NetworkError');
+    console.error(`Failed to fetch ${endpoint}: ${status}`);
     return null;
   }
 }
@@ -464,6 +683,7 @@ async function navigate(page) {
     } else if (page === 'backtest') {
       await loadBacktestPage();
     } else if (page === 'options') {
+      applyI18n();
       renderOptionsPage();
     } else if (page === 'synth-chain') {
       initSyntheticChainPage();
@@ -1628,29 +1848,34 @@ async function runOptionBacktest() {
 }
 
 async function renderOptionsPage() {
+  applyI18n();
   const statusEl = document.getElementById('options-refresh-status');
   const authMsgEl = document.getElementById('schwab-auth-msg');
   const authSection = document.getElementById('schwab-auth-section');
   if (!statusEl) return;
 
-  statusEl.textContent = 'Checking market data status...';
+  statusEl.textContent = t('options.checkingStatus');
   try {
     const data = await apiFetch('/api/options/schwab/status');
     if (data && data.connected) {
-      statusEl.textContent = 'Ready';
+      statusEl.textContent = t('options.ready');
       if (authSection) authSection.style.display = 'none';
       refreshOptionsData();
-    } else if (data && (data.status === 'NEEDS_AUTH' || data.configured === false)) {
-      statusEl.textContent = 'Authorization needed';
+    } else if (data && data.configured === false) {
+      statusEl.textContent = data.message || 'Real-time Schwab data is not configured in this deployment.';
+      if (authSection) authSection.style.display = 'none';
+      if (authMsgEl) authMsgEl.textContent = '';
+    } else if (data && data.status === 'NEEDS_AUTH') {
+      statusEl.textContent = t('options.authorizationNeeded');
       if (authSection) authSection.style.display = 'block';
       if (authMsgEl) authMsgEl.textContent = `Status: ${data?.status || 'Offline'}`;
     } else {
-      statusEl.textContent = 'Checking chain directly...';
+      statusEl.textContent = t('options.checkingChain');
       if (authSection) authSection.style.display = 'none';
       refreshOptionsData();
     }
   } catch (err) {
-    statusEl.innerHTML = `<span style="color:var(--accent-red); font-weight:bold;">Status Error</span>`;
+    statusEl.innerHTML = `<span style="color:var(--accent-red); font-weight:bold;">${t('options.statusError')}</span>`;
     console.error("Status check failed:", err);
   }
 }
@@ -1666,7 +1891,7 @@ async function refreshOptionsData(ticker = null) {
   const bodyEl = document.getElementById('options-chain-body');
   if (!statusEl || !bodyEl) return;
 
-  statusEl.textContent = `Refreshing ${cleanTicker}...`;
+  statusEl.textContent = t('options.refreshing', { ticker: cleanTicker });
   if (refreshBtn) refreshBtn.disabled = true;
 
   try {
@@ -1674,7 +1899,7 @@ async function refreshOptionsData(ticker = null) {
     const cached = optionsChainClientCache[cacheKey];
     let data = cached && Date.now() - cached.ts < OPTIONS_CHAIN_CLIENT_CACHE_MS ? cached.data : null;
     if (data) {
-      statusEl.textContent = `Using cached ${cleanTicker} chain...`;
+      statusEl.textContent = t('options.usingCached', { ticker: cleanTicker });
     } else {
       data = await apiFetch(`/api/options/schwab/chain/${encodeURIComponent(cleanTicker)}?contractType=ALL&strikeCount=20`);
       if (data && data.options) {
@@ -1682,7 +1907,17 @@ async function refreshOptionsData(ticker = null) {
       }
     }
     if (!data || !data.options) {
-      statusEl.textContent = 'Failed to fetch real-time data from Schwab.';
+      statusEl.textContent = apiFetch.lastError?.message || t('options.fetchFailed');
+      if (apiFetch.lastError?.status === 403) {
+        statusEl.textContent = t('options.authRequiredStatus');
+        const authSection = document.getElementById('schwab-auth-section');
+        if (authSection) {
+          authSection.style.opacity = "1";
+          authSection.style.display = 'block';
+        }
+        const authMsgEl = document.getElementById('schwab-auth-msg');
+        if (authMsgEl) authMsgEl.textContent = 'Status: NEEDS_AUTH';
+      }
       return;
     }
 
@@ -1700,7 +1935,11 @@ async function refreshOptionsData(ticker = null) {
     renderOptionsBuilder();
 
     const cacheAge = optionsChainClientCache[cacheKey] ? Math.round((Date.now() - optionsChainClientCache[cacheKey].ts) / 1000) : 0;
-    statusEl.textContent = `${cleanTicker} updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · cache ${cacheAge}s`;
+    statusEl.textContent = t('options.updated', {
+      ticker: cleanTicker,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      cacheAge,
+    });
 
     const authSection = document.getElementById('schwab-auth-section');
     if (authSection) {
@@ -1713,11 +1952,11 @@ async function refreshOptionsData(ticker = null) {
     console.error("Options refresh error:", err);
     const message = err.message.toLowerCase();
     if (message.includes('authorization') || message.includes('token')) {
-      statusEl.textContent = 'Authorization expired.';
+      statusEl.textContent = t('options.authExpired');
       const authSection = document.getElementById('schwab-auth-section');
       if (authSection) authSection.style.display = 'block';
     } else {
-      statusEl.textContent = 'Option chain refresh failed.';
+      statusEl.textContent = t('options.refreshFailed');
     }
   } finally {
     if (refreshBtn) refreshBtn.disabled = false;
@@ -1729,7 +1968,7 @@ function updateOptionsExpirationFilter() {
   if (!select) return;
   const current = select.value || 'ALL';
   const expiries = [...new Set(optionsChainState.options.map(o => o.expiry).filter(Boolean))].sort();
-  select.innerHTML = '<option value="ALL">All expirations</option>' + expiries.map(exp => {
+  select.innerHTML = `<option value="ALL">${t('options.allExpirations')}</option>` + expiries.map(exp => {
     const first = optionsChainState.options.find(o => o.expiry === exp);
     const dte = first?.expiry_dte ?? '-';
     return `<option value="${exp}">${exp} · ${dte} DTE</option>`;
@@ -1749,7 +1988,7 @@ function updateOptionsSummary(data) {
       return sum + (mid > 0 ? (Number(o.ask) - Number(o.bid)) / mid : 0);
     }, 0) / liquid.length
     : null;
-  const health = avgSpreadPct == null ? '-' : avgSpreadPct < 0.08 ? 'Good' : avgSpreadPct < 0.18 ? 'Watch' : 'Wide';
+  const health = avgSpreadPct == null ? '-' : avgSpreadPct < 0.08 ? t('options.healthGood') : avgSpreadPct < 0.18 ? t('options.healthWatch') : t('options.healthWide');
 
   document.getElementById('options-underlying-price').textContent = spot ? `$${spot.toFixed(2)}` : '-';
   document.getElementById('options-contract-count').textContent = options.length.toLocaleString();
@@ -1782,6 +2021,7 @@ function renderOptionsChainTable() {
   const meta = document.getElementById('options-chain-meta');
   if (!body) return;
   const rows = getFilteredOptionsRows();
+  const expiryFilter = document.getElementById('options-expiration-filter')?.value || 'ALL';
   const spot = Number(optionsChainState.underlying || 0);
   const grouped = new Map();
   rows.forEach(o => {
@@ -1790,18 +2030,46 @@ function renderOptionsChainTable() {
     grouped.get(key)[o.type === 'CALL' ? 'call' : 'put'] = o;
   });
 
-  const tableRows = [...grouped.values()].sort((a, b) =>
-    (a.expiry || '').localeCompare(b.expiry || '') || Math.abs(a.strike - spot) - Math.abs(b.strike - spot) || a.strike - b.strike
-  ).slice(0, 220);
+  const groupedRows = [...grouped.values()];
+  const expiries = [...new Set(groupedRows.map(row => row.expiry || ''))].sort();
+  const rowsPerExpiry = expiryFilter === 'ALL' ? 21 : 61;
+  const maxRows = 220;
+  const centeredRows = [];
+
+  expiries.forEach(expiry => {
+    const expiryRows = groupedRows
+      .filter(row => (row.expiry || '') === expiry)
+      .sort((a, b) => a.strike - b.strike);
+    if (!expiryRows.length) return;
+    if (!spot || expiryRows.length <= rowsPerExpiry) {
+      centeredRows.push(...expiryRows);
+      return;
+    }
+    const atmIndex = expiryRows.reduce((bestIdx, row, idx) =>
+      Math.abs(row.strike - spot) < Math.abs(expiryRows[bestIdx].strike - spot) ? idx : bestIdx
+    , 0);
+    const halfWindow = Math.floor(rowsPerExpiry / 2);
+    let start = Math.max(0, atmIndex - halfWindow);
+    let end = Math.min(expiryRows.length, start + rowsPerExpiry);
+    start = Math.max(0, end - rowsPerExpiry);
+    centeredRows.push(...expiryRows.slice(start, end));
+  });
+
+  const tableRows = centeredRows.slice(0, maxRows);
 
   if (meta) {
     meta.textContent = optionsChainState.loadedAt
-      ? `${optionsChainState.ticker} · ${rows.length.toLocaleString()} filtered contracts · ${optionsChainState.loadedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-      : 'Load a chain to begin.';
+      ? t('options.filteredMeta', {
+        ticker: optionsChainState.ticker,
+        visible: tableRows.length.toLocaleString(),
+        total: rows.length.toLocaleString(),
+        time: optionsChainState.loadedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      })
+      : t('options.loadChain');
   }
 
   if (!tableRows.length) {
-    body.innerHTML = '<tr><td colspan="13" class="options-empty-row">No contracts match the current filters.</td></tr>';
+    body.innerHTML = `<tr><td colspan="13" class="options-empty-row">${t('options.noContracts')}</td></tr>`;
     return;
   }
 
@@ -1836,17 +2104,17 @@ function renderOptionsCandidates() {
   const leaps = options.filter(o => o.type === 'CALL' && o.delta >= 0.6 && o.delta <= 0.9 && o.expiry_dte >= 300).sort((a, b) => b.expiry_dte - a.expiry_dte).slice(0, 6);
   const spreadShorts = options.filter(o => Math.abs(Number(o.delta)) >= 0.18 && Math.abs(Number(o.delta)) <= 0.35 && o.expiry_dte >= 20 && o.expiry_dte <= 60).sort(byLiquidity).slice(0, 6);
 
-  renderCandidateList('options-wheel-candidates', putWheel, 'Cash-secured put candidate');
-  renderCandidateList('options-covered-call-candidates', coveredCalls, 'Covered call candidate');
-  renderCandidateList('options-leaps-candidates', leaps, 'Long-dated directional candidate');
-  renderCandidateList('options-spread-candidates', spreadShorts, 'Potential short leg');
+  renderCandidateList('options-wheel-candidates', putWheel, t('options.wheelCandidate'));
+  renderCandidateList('options-covered-call-candidates', coveredCalls, t('options.coveredCallCandidate'));
+  renderCandidateList('options-leaps-candidates', leaps, t('options.leapsCandidate'));
+  renderCandidateList('options-spread-candidates', spreadShorts, t('options.shortLegCandidate'));
 }
 
 function renderCandidateList(id, rows, label) {
   const el = document.getElementById(id);
   if (!el) return;
   if (!rows.length) {
-    el.innerHTML = '<div class="options-empty-note">No candidates match the current chain.</div>';
+    el.innerHTML = `<div class="options-empty-note">${t('options.noCandidates')}</div>`;
     return;
   }
   el.innerHTML = rows.map(o => `
@@ -1881,15 +2149,15 @@ function renderOptionsBuilder() {
   }, 0);
   legsEl.innerHTML = `
     <div class="options-builder-summary">
-      <span>Legs ${optionsBuilderLegs.length}</span>
-      <span>${netDebit >= 0 ? 'Net Debit' : 'Net Credit'} $${Math.abs(netDebit).toFixed(0)}</span>
-      <button class="btn btn-ghost" onclick="optionsBuilderLegs=[]; renderOptionsBuilder();">Clear</button>
+      <span>${t('options.legs', { count: optionsBuilderLegs.length })}</span>
+      <span>${netDebit >= 0 ? t('options.netDebit') : t('options.netCredit')} $${Math.abs(netDebit).toFixed(0)}</span>
+      <button class="btn btn-ghost" onclick="optionsBuilderLegs=[]; renderOptionsBuilder();">${t('options.clear')}</button>
     </div>
     ${optionsBuilderLegs.map((leg, idx) => `
       <div class="options-builder-leg">
         <strong>${leg.action} ${leg.qty} ${leg.expiry} $${money2(leg.strike)} ${leg.type}</strong>
         <span>Mid ${money2(leg.mid)} · Δ ${money2(leg.delta)} · IV ${pct1(leg.iv)}</span>
-        <button onclick="optionsBuilderLegs.splice(${idx},1); renderOptionsBuilder();">Remove</button>
+        <button onclick="optionsBuilderLegs.splice(${idx},1); renderOptionsBuilder();">${t('options.remove')}</button>
       </div>
     `).join('')}
   `;
@@ -1900,7 +2168,7 @@ async function submitSchwabOAuthCode() {
   const msgEl = document.getElementById('schwab-auth-msg');
   if (!code) return;
 
-  msgEl.textContent = "Saving Schwab token...";
+  msgEl.textContent = t('options.savingToken');
   msgEl.style.color = "var(--text-muted)";
 
   try {
@@ -1915,20 +2183,20 @@ async function submitSchwabOAuthCode() {
 
     const result = await res.json();
     if (res.ok) {
-      msgEl.innerHTML = `<span style="color:var(--accent-green); font-weight:bold;">Schwab token saved.</span>`;
+      msgEl.innerHTML = `<span style="color:var(--accent-green); font-weight:bold;">${t('options.tokenSaved')}</span>`;
       setTimeout(() => renderOptionsPage(), 800);
     } else {
-      msgEl.textContent = "Error: " + (result.detail || "Failed to save Schwab token");
+      msgEl.textContent = `${t('common.error')}: ${result.detail || t('options.tokenSaveFailed')}`;
       msgEl.style.color = "var(--accent-red)";
     }
   } catch (err) {
-    msgEl.textContent = "Network error";
+    msgEl.textContent = t('options.networkError');
     msgEl.style.color = "var(--accent-red)";
   }
 }
 async function showSchwabAuthUrl() {
   const msgEl = document.getElementById('schwab-auth-msg');
-  msgEl.textContent = "Loading Schwab authorization URL...";
+  msgEl.textContent = t('options.loadingAuthUrl');
   msgEl.style.color = "var(--accent-blue)";
 
   try {
@@ -1940,12 +2208,12 @@ async function showSchwabAuthUrl() {
     });
     const result = await res.json();
     if (res.ok) {
-      msgEl.innerHTML = `Open this URL, authorize, then paste the redirect URL above:<br><a href="${result.authorization_url}" target="_blank" style="color:var(--accent-blue);">Schwab authorization URL</a>`;
+      msgEl.innerHTML = `${t('options.openAuthUrl')}<br><a href="${result.authorization_url}" target="_blank" style="color:var(--accent-blue);">${t('options.authUrlLabel')}</a>`;
     } else {
-      msgEl.textContent = result.detail || "Failed to request code";
+      msgEl.textContent = result.detail || t('options.authRequestFailed');
     }
   } catch (err) {
-    msgEl.textContent = "Network error: " + err.message;
+    msgEl.textContent = `${t('options.networkError')}: ${err.message}`;
   }
 }
 
@@ -2082,7 +2350,7 @@ async function handleChangePasswordSubmit() {
   const errorEl = document.getElementById('password-error');
 
   if (newPw !== confirmPw) {
-    errorEl.textContent = "Passwords do not match";
+    errorEl.textContent = t('auth.passwordMismatch');
     errorEl.style.display = 'block';
     return;
   }
@@ -2098,15 +2366,15 @@ async function handleChangePasswordSubmit() {
     });
 
     if (res.ok) {
-      alert("Password updated successfully!");
+      alert(t('auth.passwordUpdated'));
       hideChangePasswordModal();
     } else {
       const err = await res.json();
-      errorEl.textContent = err.detail || "Update failed";
+      errorEl.textContent = err.detail || t('auth.updateFailed');
       errorEl.style.display = 'block';
     }
   } catch (err) {
-    errorEl.textContent = "Network error";
+    errorEl.textContent = t('options.networkError');
     errorEl.style.display = 'block';
   }
 }
@@ -2379,13 +2647,13 @@ function updateAuthModeUI() {
   const isReset = authMode === 'reset';
 
   document.getElementById('auth-title').textContent =
-    isLogin ? 'Login to BRStock AI' : (isReg ? 'Create an Account' : 'Reset Password');
+    isLogin ? t('auth.loginTitle') : (isReg ? t('auth.registerTitle') : t('auth.resetTitle'));
   document.getElementById('auth-subtitle').textContent =
-    isLogin ? 'Access your personal watchlist and AI insights' :
-      (isReg ? 'Join our intelligent market community' : 'Enter your email and Secret PIN to reset');
+    isLogin ? t('auth.loginSubtitle') :
+      (isReg ? t('auth.registerSubtitle') : t('auth.resetSubtitle'));
 
   document.getElementById('btn-auth-submit').textContent =
-    isLogin ? 'Login' : (isReg ? 'Sign Up' : 'Update Password');
+    isLogin ? t('auth.login') : (isReg ? t('auth.signUp') : t('auth.updatePassword'));
 
   document.getElementById('group-fullname').style.display = isReg ? 'block' : 'none';
   document.getElementById('group-pin').style.display = (isReg || isReset) ? 'block' : 'none';
@@ -2394,8 +2662,8 @@ function updateAuthModeUI() {
   // Repurpose password field for login/reg
   document.getElementById('auth-password').closest('.input-group').style.display = isReset ? 'none' : 'block';
 
-  document.getElementById('auth-switch-text').textContent = isLogin ? "Don't have an account?" : "Back to";
-  document.getElementById('auth-switch-link').textContent = isLogin ? 'Sign Up' : 'Login';
+  document.getElementById('auth-switch-text').textContent = isLogin ? t('auth.noAccount') : t('auth.backTo');
+  document.getElementById('auth-switch-link').textContent = isLogin ? t('auth.signUp') : t('auth.login');
   document.getElementById('auth-forgot-link').style.display = isLogin ? 'block' : 'none';
   document.getElementById('auth-error').style.display = 'none';
 }
@@ -2409,7 +2677,7 @@ async function handleAuthSubmit() {
   const errorEl = document.getElementById('auth-error');
 
   if (!email || (authMode !== 'reset' && !password)) {
-    errorEl.textContent = 'Please fill in required fields';
+    errorEl.textContent = t('auth.requiredFields');
     errorEl.style.display = 'block';
     return;
   }
@@ -2417,7 +2685,7 @@ async function handleAuthSubmit() {
   errorEl.style.display = 'none';
   const btn = document.getElementById('btn-auth-submit');
   btn.disabled = true;
-  btn.textContent = '⌛ Processing...';
+  btn.textContent = `⌛ ${t('auth.processing')}`;
 
   try {
     console.log('[AUTH] submit start', { mode: authMode, email });
@@ -2429,11 +2697,11 @@ async function handleAuthSubmit() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || 'Registration failed');
+        throw new Error(err.detail || t('auth.registerFailed'));
       }
       authMode = 'login';
       updateAuthModeUI();
-      errorEl.textContent = 'Registration successful! Please login.';
+      errorEl.textContent = t('auth.registerSuccess');
       errorEl.className = 'auth-error success'; // Assume a success class
       errorEl.style.display = 'block';
       return;
@@ -2447,11 +2715,11 @@ async function handleAuthSubmit() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || 'Reset failed');
+        throw new Error(err.detail || t('auth.resetFailed'));
       }
       authMode = 'login';
       updateAuthModeUI();
-      alert('Password reset successful! Please login with your new password.');
+      alert(t('auth.resetSuccess'));
       return;
     }
 
@@ -2467,7 +2735,7 @@ async function handleAuthSubmit() {
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.detail || 'Invalid email or password');
+      throw new Error(err.detail || t('auth.invalidLogin'));
     }
 
     const data = await res.json();
@@ -2485,7 +2753,7 @@ async function handleAuthSubmit() {
     errorEl.style.display = 'block';
   } finally {
     btn.disabled = false;
-    btn.textContent = authMode === 'login' ? 'Login' : (authMode === 'register' ? 'Sign Up' : 'Update Password');
+    btn.textContent = authMode === 'login' ? t('auth.login') : (authMode === 'register' ? t('auth.signUp') : t('auth.updatePassword'));
   }
 }
 

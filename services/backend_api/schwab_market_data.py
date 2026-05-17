@@ -36,6 +36,9 @@ class SchwabMarketDataProvider:
             "https://developer.schwab.com/oauth2-redirect.html",
         ).strip()
         self.scope = scope or os.getenv("SCHWAB_SCOPE", "readonly").strip()
+        self.token_store = os.getenv("SCHWAB_TOKEN_STORE", "file").strip().lower()
+        self.token_key = os.getenv("SCHWAB_TOKEN_KEY", "schwab_market_data").strip()
+        self._token_engine = None
 
         raw_token_path = token_path or os.getenv("SCHWAB_TOKEN_PATH", ".schwab_tokens.json")
         self.token_path = Path(raw_token_path)
@@ -93,6 +96,7 @@ class SchwabMarketDataProvider:
         return {
             "provider": "schwab",
             "configured": configured,
+            "token_store": self.token_store,
             "token_file": str(self.token_path),
             "has_access_token": bool(token.get("access_token")),
             "has_refresh_token": bool(token.get("refresh_token")),
@@ -125,18 +129,25 @@ class SchwabMarketDataProvider:
         frequency_type: str = "minute",
         frequency: int = 5,
         need_extended_hours_data: bool = False,
+        start_datetime: Optional[datetime] = None,
+        end_datetime: Optional[datetime] = None,
     ) -> Dict[str, Any]:
-        return self._marketdata_get(
-            "/pricehistory",
-            {
-                "symbol": symbol.strip().upper(),
-                "periodType": period_type,
-                "period": period,
-                "frequencyType": frequency_type,
-                "frequency": frequency,
-                "needExtendedHoursData": str(need_extended_hours_data).lower(),
-            },
-        )
+        params = {
+            "symbol": symbol.strip().upper(),
+            "frequencyType": frequency_type,
+            "frequency": frequency,
+            "needExtendedHoursData": str(need_extended_hours_data).lower(),
+        }
+        if start_datetime is not None:
+            start_dt = pd.to_datetime(start_datetime).to_pydatetime().replace(tzinfo=timezone.utc)
+            params["startDate"] = int(start_dt.timestamp() * 1000)
+            if end_datetime is not None:
+                end_dt = pd.to_datetime(end_datetime).to_pydatetime().replace(tzinfo=timezone.utc)
+                params["endDate"] = int(end_dt.timestamp() * 1000)
+        else:
+            params["periodType"] = period_type
+            params["period"] = period
+        return self._marketdata_get("/pricehistory", params)
 
     def get_option_chain(self, symbol: str, **params: Any) -> Dict[str, Any]:
         query = {"symbol": symbol.strip().upper()}
@@ -205,6 +216,8 @@ class SchwabMarketDataProvider:
         frequency_type: str = "minute",
         frequency: int = 5,
         need_extended_hours_data: bool = False,
+        start_datetime: Optional[datetime] = None,
+        end_datetime: Optional[datetime] = None,
     ) -> pd.DataFrame:
         payload = self.get_price_history(
             symbol,
@@ -213,6 +226,8 @@ class SchwabMarketDataProvider:
             frequency_type=frequency_type,
             frequency=frequency,
             need_extended_hours_data=need_extended_hours_data,
+            start_datetime=start_datetime,
+            end_datetime=end_datetime,
         )
         candles = payload.get("candles") or []
         if not candles:
@@ -289,6 +304,9 @@ class SchwabMarketDataProvider:
             merged["expires_at"] = now + int(token["expires_in"])
         if include_refresh_expiry and token.get("refresh_token"):
             merged["refresh_token_expires_at"] = now + 7 * 24 * 60 * 60
+        if self.token_store == "database":
+            self._save_token_to_database(merged)
+            return
         self.token_path.parent.mkdir(parents=True, exist_ok=True)
         self.token_path.write_text(json.dumps(merged, indent=2, sort_keys=True), encoding="utf-8")
         try:
@@ -297,6 +315,8 @@ class SchwabMarketDataProvider:
             pass
 
     def _load_token(self) -> Dict[str, Any]:
+        if self.token_store == "database":
+            return self._load_token_from_database()
         if not self.token_path.exists():
             return {}
         try:
@@ -304,9 +324,68 @@ class SchwabMarketDataProvider:
         except json.JSONDecodeError:
             return {}
 
+    def _get_token_engine(self):
+        if self._token_engine is not None:
+            return self._token_engine
+        from sqlalchemy import create_engine
+
+        db_url = os.getenv("DATABASE_URL", "").strip()
+        if not db_url:
+            raise SchwabAuthError("Schwab token database store requires DATABASE_URL")
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        self._token_engine = create_engine(db_url, pool_pre_ping=True, pool_recycle=1800)
+        return self._token_engine
+
+    def _ensure_token_table(self, conn) -> None:
+        from sqlalchemy import text
+
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS app_runtime_secrets (
+                key VARCHAR(100) PRIMARY KEY,
+                value_json TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+
+    def _save_token_to_database(self, token: Dict[str, Any]) -> None:
+        from sqlalchemy import text
+
+        engine = self._get_token_engine()
+        payload = json.dumps(token, separators=(",", ":"), sort_keys=True)
+        with engine.begin() as conn:
+            self._ensure_token_table(conn)
+            conn.execute(text("DELETE FROM app_runtime_secrets WHERE key = :key"), {"key": self.token_key})
+            conn.execute(
+                text("""
+                    INSERT INTO app_runtime_secrets (key, value_json, updated_at)
+                    VALUES (:key, :value_json, CURRENT_TIMESTAMP)
+                """),
+                {"key": self.token_key, "value_json": payload},
+            )
+
+    def _load_token_from_database(self) -> Dict[str, Any]:
+        from sqlalchemy import text
+
+        try:
+            engine = self._get_token_engine()
+            with engine.begin() as conn:
+                self._ensure_token_table(conn)
+                row = conn.execute(
+                    text("SELECT value_json FROM app_runtime_secrets WHERE key = :key"),
+                    {"key": self.token_key},
+                ).fetchone()
+            if not row:
+                return {}
+            return json.loads(row[0])
+        except SchwabAuthError:
+            raise
+        except Exception:
+            return {}
+
     def _require_config(self) -> None:
         if not self.is_configured():
-            raise SchwabAuthError("Set SCHWAB_CLIENT_ID, SCHWAB_CLIENT_SECRET, and SCHWAB_REDIRECT_URI in .env")
+            raise SchwabAuthError("Schwab OAuth client configuration is missing")
 
     @staticmethod
     def _redact_token(token: Dict[str, Any]) -> Dict[str, Any]:

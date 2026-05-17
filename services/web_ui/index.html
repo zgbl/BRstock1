@@ -19,37 +19,37 @@
   <div class="auth-modal">
     <button onclick="hideAuthModal()" style="position:absolute; top:15px; right:15px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:20px">✕</button>
     <div class="auth-header">
-      <h2 id="auth-title">Login to BRStock AI</h2>
-      <p id="auth-subtitle">Access your personal watchlist and AI insights</p>
+      <h2 id="auth-title" data-i18n="auth.loginTitle">Login to BRStock AI</h2>
+      <p id="auth-subtitle" data-i18n="auth.loginSubtitle">Access your personal watchlist and AI insights</p>
     </div>
     <div id="auth-error" class="auth-error" style="display:none"></div>
     <form class="auth-body" onsubmit="event.preventDefault(); handleAuthSubmit();">
       <div class="input-group">
-        <label>Email Address</label>
+        <label data-i18n="auth.email">Email Address</label>
         <input type="email" id="auth-email" placeholder="name@example.com">
       </div>
       <div class="input-group">
-        <label>Password</label>
+        <label data-i18n="auth.password">Password</label>
         <input type="password" id="auth-password" placeholder="••••••••">
       </div>
       <div class="input-group" id="group-fullname" style="display:none">
-        <label>Full Name</label>
+        <label data-i18n="auth.fullName">Full Name</label>
         <input type="text" id="auth-fullname" placeholder="John Doe">
       </div>
       <div class="input-group" id="group-pin" style="display:none">
-        <label>Secret Reset PIN (6 digits)</label>
-        <input type="password" id="auth-pin" placeholder="Used for recovery">
+        <label data-i18n="auth.resetPin">Secret Reset PIN (6 digits)</label>
+        <input type="password" id="auth-pin" placeholder="Used for recovery" data-i18n-placeholder="auth.recoveryPlaceholder">
       </div>
       <div class="input-group" id="group-new-password" style="display:none">
-        <label>New Password</label>
+        <label data-i18n="auth.newPassword">New Password</label>
         <input type="password" id="auth-new-password" placeholder="••••••••">
       </div>
-      <button class="btn btn-primary" id="btn-auth-submit" style="width:100%; justify-content:center; margin-top:10px" onclick="handleAuthSubmit()">Login</button>
+      <button class="btn btn-primary" id="btn-auth-submit" style="width:100%; justify-content:center; margin-top:10px" onclick="handleAuthSubmit()" data-i18n="auth.login">Login</button>
       <div class="auth-switch" id="auth-links">
-        <span id="auth-switch-text">Don't have an account?</span>
-        <a href="javascript:void(0)" onclick="toggleAuthMode()" id="auth-switch-link">Sign Up</a>
+        <span id="auth-switch-text" data-i18n="auth.noAccount">Don't have an account?</span>
+        <a href="javascript:void(0)" onclick="toggleAuthMode()" id="auth-switch-link" data-i18n="auth.signUp">Sign Up</a>
         <div style="margin-top:10px;">
-          <a href="javascript:void(0)" onclick="showResetMode()" id="auth-forgot-link">Forgot Password?</a>
+          <a href="javascript:void(0)" onclick="showResetMode()" id="auth-forgot-link" data-i18n="auth.forgotPassword">Forgot Password?</a>
         </div>
       </div>
     </form>
@@ -61,24 +61,24 @@
   <div class="auth-modal">
     <button onclick="hideChangePasswordModal()" style="position:absolute; top:15px; right:15px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:20px">✕</button>
     <div class="auth-header">
-      <h2>Change Password</h2>
-      <p>Ensure your account stays secure</p>
+      <h2 data-i18n="auth.changePasswordTitle">Change Password</h2>
+      <p data-i18n="auth.changePasswordSubtitle">Ensure your account stays secure</p>
     </div>
     <div id="password-error" class="auth-error" style="display:none"></div>
     <form class="auth-body" onsubmit="event.preventDefault(); handleChangePasswordSubmit();">
       <div class="input-group">
-        <label>Old Password</label>
+        <label data-i18n="auth.oldPassword">Old Password</label>
         <input type="password" id="old-password" placeholder="••••••••">
       </div>
       <div class="input-group">
-        <label>New Password</label>
+        <label data-i18n="auth.newPassword">New Password</label>
         <input type="password" id="new-password" placeholder="••••••••">
       </div>
       <div class="input-group">
-        <label>Confirm New Password</label>
+        <label data-i18n="auth.confirmNewPassword">Confirm New Password</label>
         <input type="password" id="confirm-password" placeholder="••••••••">
       </div>
-      <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:10px">Update Password</button>
+      <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:10px" data-i18n="auth.updatePassword">Update Password</button>
     </form>
   </div>
 </div>
@@ -910,103 +910,103 @@
         <div class="panel-card options-workbench-header">
           <div class="options-title-row">
             <div>
-              <h2 class="options-page-title">Options Analysis</h2>
-              <p class="options-page-subtitle">Explore chains, scan candidates, and validate strategy ideas.</p>
+              <h2 class="options-page-title" data-i18n="options.title">Options Analysis</h2>
+              <p class="options-page-subtitle" data-i18n="options.subtitle">Explore chains, scan candidates, and validate strategy ideas.</p>
             </div>
             <div id="options-refresh-status" class="options-status-line">Ready</div>
           </div>
 
           <div class="options-control-grid">
             <div class="input-group">
-              <label>Ticker</label>
+              <label data-i18n="fields.ticker">Ticker</label>
               <input type="text" id="options-chain-ticker" value="TSLA" onkeydown="handleOptionsTickerKey(event)">
             </div>
             <div class="input-group">
-              <label>Expiration</label>
+              <label data-i18n="options.expiration">Expiration</label>
               <select id="options-expiration-filter" class="report-select" onchange="renderOptionsChainTable()">
-                <option value="ALL">All expirations</option>
+                <option value="ALL" data-i18n="options.allExpirations">All expirations</option>
               </select>
             </div>
             <div class="input-group">
-              <label>Contract</label>
+              <label data-i18n="options.contract">Contract</label>
               <select id="options-type-filter" class="report-select" onchange="renderOptionsChainTable()">
-                <option value="BOTH">Calls & Puts</option>
-                <option value="CALL">Calls</option>
-                <option value="PUT">Puts</option>
+                <option value="BOTH" data-i18n="options.callsPuts">Calls & Puts</option>
+                <option value="CALL" data-i18n="filters.calls">Calls</option>
+                <option value="PUT" data-i18n="filters.puts">Puts</option>
               </select>
             </div>
             <div class="input-group">
-              <label>Delta</label>
+              <label data-i18n="fields.delta">Delta</label>
               <select id="options-delta-filter" class="report-select" onchange="renderOptionsChainTable()">
-                <option value="ALL">All deltas</option>
-                <option value="ATM">Near ATM</option>
-                <option value="WHEEL">Wheel puts</option>
-                <option value="COVERED_CALL">Covered calls</option>
-                <option value="LEAPS">LEAPS calls</option>
+                <option value="ALL" data-i18n="options.allDeltas">All deltas</option>
+                <option value="ATM" data-i18n="options.nearAtm">Near ATM</option>
+                <option value="WHEEL" data-i18n="options.wheelPuts">Wheel puts</option>
+                <option value="COVERED_CALL" data-i18n="options.coveredCalls">Covered calls</option>
+                <option value="LEAPS" data-i18n="options.leapsCalls">LEAPS calls</option>
               </select>
             </div>
-            <button class="btn btn-primary options-refresh-btn" onclick="refreshOptionsData()">Refresh</button>
+            <button class="btn btn-primary options-refresh-btn" onclick="refreshOptionsData()" data-i18n="options.refresh">Refresh</button>
           </div>
 
           <div class="interval-tabs options-tabs">
-            <button class="interval-tab active" id="tab-options-chain" onclick="switchOptionsTab('chain')">Chain</button>
-            <button class="interval-tab" id="tab-options-candidates" onclick="switchOptionsTab('candidates')">Candidates</button>
-            <button class="interval-tab" id="tab-options-builder" onclick="switchOptionsTab('builder')">Strategy Builder</button>
-            <button class="interval-tab" id="tab-options-backtest" onclick="switchOptionsTab('backtest')">Backtest</button>
+            <button class="interval-tab active" id="tab-options-chain" onclick="switchOptionsTab('chain')" data-i18n="options.chain">Chain</button>
+            <button class="interval-tab" id="tab-options-candidates" onclick="switchOptionsTab('candidates')" data-i18n="options.candidates">Candidates</button>
+            <button class="interval-tab" id="tab-options-builder" onclick="switchOptionsTab('builder')" data-i18n="options.builder">Strategy Builder</button>
+            <button class="interval-tab" id="tab-options-backtest" onclick="switchOptionsTab('backtest')" data-i18n="options.backtest">Backtest</button>
           </div>
         </div>
 
         <div id="schwab-auth-section" class="panel-card options-auth-panel" style="display:none;">
-          <h3 class="panel-title">Authorization Required</h3>
-          <p style="font-size:13px; margin-bottom:10px; color: var(--text-primary);">Refresh your market data token from the backend when authorization expires.</p>
+          <h3 class="panel-title" data-i18n="options.authRequired">Authorization Required</h3>
+          <p style="font-size:13px; margin-bottom:10px; color: var(--text-primary);" data-i18n="options.authHelp">Refresh your market data token from the backend when authorization expires.</p>
           <div style="display:flex; gap:10px; flex-wrap: wrap;">
-            <input type="text" id="schwab-auth-code" placeholder="OAuth code or redirect URL" style="flex:1; min-width:220px; padding:8px; border-radius:4px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:white;">
-            <button class="btn btn-primary" onclick="submitSchwabOAuthCode()">Save Token</button>
-            <button class="btn btn-outline" style="border: 1px solid var(--accent-blue); color: var(--accent-blue);" onclick="showSchwabAuthUrl()">Get Auth URL</button>
+            <input type="text" id="schwab-auth-code" placeholder="OAuth code or redirect URL" data-i18n-placeholder="options.oauthPlaceholder" style="flex:1; min-width:220px; padding:8px; border-radius:4px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:white;">
+            <button class="btn btn-primary" onclick="submitSchwabOAuthCode()" data-i18n="options.saveToken">Save Token</button>
+            <button class="btn btn-outline" style="border: 1px solid var(--accent-blue); color: var(--accent-blue);" onclick="showSchwabAuthUrl()" data-i18n="options.getAuthUrl">Get Auth URL</button>
           </div>
           <div id="schwab-auth-msg" style="margin-top:8px; font-size:12px;"></div>
         </div>
 
         <div class="options-summary-strip">
           <div class="stat-card options-summary-card">
-            <div class="stat-label">Underlying</div>
+            <div class="stat-label" data-i18n="options.underlying">Underlying</div>
             <div class="stat-value" id="options-underlying-price">-</div>
           </div>
           <div class="stat-card options-summary-card">
-            <div class="stat-label">Contracts</div>
+            <div class="stat-label" data-i18n="options.contracts">Contracts</div>
             <div class="stat-value" id="options-contract-count">-</div>
           </div>
           <div class="stat-card options-summary-card">
-            <div class="stat-label">ATM Strike</div>
+            <div class="stat-label" data-i18n="options.atmStrike">ATM Strike</div>
             <div class="stat-value" id="options-atm-strike">-</div>
           </div>
           <div class="stat-card options-summary-card">
-            <div class="stat-label">Spread Health</div>
+            <div class="stat-label" data-i18n="options.spreadHealth">Spread Health</div>
             <div class="stat-value" id="options-spread-health">-</div>
           </div>
         </div>
 
         <div id="options-content-chain" class="panel-card options-chain-panel">
           <div class="options-table-toolbar">
-            <h3 class="panel-title">Option Chain</h3>
-            <div id="options-chain-meta" class="options-chain-meta">Load a chain to begin.</div>
+            <h3 class="panel-title" data-i18n="options.optionChain">Option Chain</h3>
+            <div id="options-chain-meta" class="options-chain-meta" data-i18n="options.loadChain">Load a chain to begin.</div>
           </div>
           <div class="options-chain-table-wrap">
             <table class="options-chain-table">
               <thead>
                 <tr>
-                  <th colspan="6" class="call-head">Calls</th>
-                  <th class="strike-head">Strike</th>
-                  <th colspan="6" class="put-head">Puts</th>
+                  <th colspan="6" class="call-head" data-i18n="filters.calls">Calls</th>
+                  <th class="strike-head" data-i18n="fields.strike">Strike</th>
+                  <th colspan="6" class="put-head" data-i18n="filters.puts">Puts</th>
                 </tr>
                 <tr>
-                  <th>Bid</th><th>Ask</th><th>Delta</th><th>IV</th><th>OI</th><th>Vol</th>
-                  <th>Strike</th>
-                  <th>Bid</th><th>Ask</th><th>Delta</th><th>IV</th><th>OI</th><th>Vol</th>
+                  <th data-i18n="fields.bid">Bid</th><th data-i18n="fields.ask">Ask</th><th data-i18n="fields.delta">Delta</th><th>IV</th><th>OI</th><th>Vol</th>
+                  <th data-i18n="fields.strike">Strike</th>
+                  <th data-i18n="fields.bid">Bid</th><th data-i18n="fields.ask">Ask</th><th data-i18n="fields.delta">Delta</th><th>IV</th><th>OI</th><th>Vol</th>
                 </tr>
               </thead>
               <tbody id="options-chain-body">
-                <tr><td colspan="13" class="options-empty-row">Choose a ticker and refresh the chain.</td></tr>
+                <tr><td colspan="13" class="options-empty-row" data-i18n="options.chooseTicker">Choose a ticker and refresh the chain.</td></tr>
               </tbody>
             </table>
           </div>
@@ -1015,27 +1015,27 @@
         <div id="options-content-candidates" style="display:none;">
           <div class="options-candidate-grid">
             <div class="panel-card">
-              <h3 class="panel-title">Wheel Puts</h3>
+              <h3 class="panel-title" data-i18n="options.wheelPuts">Wheel Puts</h3>
               <div id="options-wheel-candidates" class="options-candidate-list"></div>
             </div>
             <div class="panel-card">
-              <h3 class="panel-title">Covered Calls</h3>
+              <h3 class="panel-title" data-i18n="options.coveredCalls">Covered Calls</h3>
               <div id="options-covered-call-candidates" class="options-candidate-list"></div>
             </div>
             <div class="panel-card">
-              <h3 class="panel-title">LEAPS Calls</h3>
+              <h3 class="panel-title" data-i18n="options.leapsCalls">LEAPS Calls</h3>
               <div id="options-leaps-candidates" class="options-candidate-list"></div>
             </div>
             <div class="panel-card">
-              <h3 class="panel-title">Credit Spread Shorts</h3>
+              <h3 class="panel-title" data-i18n="options.creditSpreadShorts">Credit Spread Shorts</h3>
               <div id="options-spread-candidates" class="options-candidate-list"></div>
             </div>
           </div>
         </div>
 
         <div id="options-content-builder" class="panel-card" style="display:none;">
-          <h3 class="panel-title">Strategy Builder</h3>
-          <div id="options-builder-empty" style="padding:28px; text-align:center; color:var(--text-muted);">Click contracts in the chain to start building a strategy.</div>
+          <h3 class="panel-title" data-i18n="options.builder">Strategy Builder</h3>
+          <div id="options-builder-empty" style="padding:28px; text-align:center; color:var(--text-muted);" data-i18n="options.strategyBuilderEmpty">Click contracts in the chain to start building a strategy.</div>
           <div id="options-builder-legs" class="options-builder-legs"></div>
         </div>
 
@@ -1074,10 +1074,10 @@
         <div id="options-content-backtest" style="display:none;">
           <div class="grid-2" style="gap: 24px; align-items: start;">
             <div class="panel-card">
-              <h3 class="panel-title">Option Strategy Backtest</h3>
+              <h3 class="panel-title" data-i18n="options.optionBacktest">Option Strategy Backtest</h3>
               <div class="auth-body" style="padding:0; background:none;">
                 <div class="input-group">
-                  <label>Strategy Type</label>
+                  <label data-i18n="options.strategyType">Strategy Type</label>
                   <select id="opt-bt-type" class="report-select" style="width:100%">
                     <option value="WHEELS">WHEELS (Sell Put -> Assigned -> Sell Call)</option>
                     <option value="LEAPS">LEAPS (Deep ITM Long Call Rolling)</option>
@@ -1085,24 +1085,24 @@
                   </select>
                 </div>
                 <div class="input-group">
-                  <label>Ticker</label>
+                  <label data-i18n="fields.ticker">Ticker</label>
                   <input type="text" id="opt-bt-ticker" value="TSLA">
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                   <div class="input-group">
-                    <label>Start Date</label>
+                    <label data-i18n="fields.startDate">Start Date</label>
                     <input type="date" id="opt-bt-start" value="2024-01-01">
                   </div>
                   <div class="input-group">
-                    <label>End Date</label>
+                    <label data-i18n="fields.endDate">End Date</label>
                     <input type="date" id="opt-bt-end" value="2025-01-01">
                   </div>
                 </div>
-                <button class="btn btn-ai-glow" style="width:100%; margin-top:16px" onclick="runOptionBacktest()">🚀 Run Option Backtest</button>
+                <button class="btn btn-ai-glow" style="width:100%; margin-top:16px" onclick="runOptionBacktest()">🚀 <span data-i18n="options.runOptionBacktest">Run Option Backtest</span></button>
               </div>
             </div>
             <div class="panel-card" id="opt-bt-results" style="display:none">
-              <h3 class="panel-title">Backtest Results</h3>
+              <h3 class="panel-title" data-i18n="options.backtestResults">Backtest Results</h3>
               <div id="opt-bt-summary" style="font-size:14px; line-height:1.6"></div>
               <div id="opt-bt-chart" style="height:250px; width:100%; margin-top:20px; border-radius:8px; border:1px solid var(--border);"></div>
             </div>

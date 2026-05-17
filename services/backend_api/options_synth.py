@@ -209,7 +209,13 @@ class OptionBacktester:
         # 1. Get daily stock data
         if df is None:
             table_name = f"{ticker.lower()}_1d"
-            df = self.db.get_stock_data(table_name, limit=10000)
+            df = self.db.get_stock_data(
+                table_name,
+                limit=None,
+                start=start_date,
+                end=end_date,
+                columns=["Open", "High", "Low", "Close", "Volume"],
+            )
             if df.empty:
                 return {"error": f"No data for {ticker}"}
             df = df.reset_index()
@@ -357,7 +363,13 @@ class OptionBacktester:
         # 1. Get daily stock data
         if df is None:
             table_name = f"{ticker.lower()}_1d"
-            df = self.db.get_stock_data(table_name, limit=10000)
+            df = self.db.get_stock_data(
+                table_name,
+                limit=None,
+                start=start_date,
+                end=end_date,
+                columns=["Open", "High", "Low", "Close", "Volume"],
+            )
             if df.empty: return {"error": f"No data for {ticker}"}
             df = df.reset_index()
             df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -566,7 +578,13 @@ class OptionBacktester:
         # 1. Get daily stock data
         if df is None:
             table_name = f"{ticker.lower()}_1d"
-            df = self.db.get_stock_data(table_name, limit=10000)
+            df = self.db.get_stock_data(
+                table_name,
+                limit=None,
+                start=start_date,
+                end=end_date,
+                columns=["Open", "High", "Low", "Close", "Volume"],
+            )
             if df.empty: return {"error": f"No data for {ticker}"}
             df = df.reset_index()
             df['timestamp'] = pd.to_datetime(df['timestamp'])

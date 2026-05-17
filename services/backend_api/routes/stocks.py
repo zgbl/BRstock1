@@ -219,7 +219,7 @@ def _latest_price_snapshot(ticker: str):
         df = _as_price_frame(raw, ticker).dropna(how="all")
         if df.empty or "Close" not in df.columns:
             table_name = f"{ticker.lower()}_1d"
-            df = db.get_stock_data(table_name, limit=220)
+            df = db.get_stock_data(table_name, limit=220, columns=["Close"])
         if df.empty or "Close" not in df.columns:
             return None
 
@@ -623,7 +623,7 @@ def get_stock_history(symbol: str, interval: str = "1d", limit: int = 1000):
         table_name = f"{symbol.lower()}_1d"
         fetch_limit = 10000 if limit == 1000 else limit
 
-    df = db.get_stock_data(table_name, limit=fetch_limit)
+    df = db.get_stock_data(table_name, limit=fetch_limit, columns=["Open", "High", "Low", "Close", "Volume"])
     if df.empty:
         return {"symbol": symbol.upper(), "count": 0, "data": []}
 
@@ -648,7 +648,7 @@ def get_stock_indicators(symbol: str, interval: str = "1d"):
         table_name = f"{symbol.lower()}_1d"
         fetch_limit = 10000
 
-    df = db.get_stock_data(table_name, limit=fetch_limit)
+    df = db.get_stock_data(table_name, limit=fetch_limit, columns=["Close"])
     if df.empty:
         raise HTTPException(status_code=404, detail=f"No data for {symbol}")
 
@@ -730,7 +730,7 @@ def get_stock_summary(symbol: str):
         return schwab
 
     table_name = f"{symbol.lower()}_5m"
-    df = db.get_stock_data(table_name, limit=500)
+    df = db.get_stock_data(table_name, limit=500, columns=["Open", "High", "Low", "Close", "Volume"])
     if df.empty:
         return {
             "symbol": symbol.upper(),
@@ -781,8 +781,8 @@ def refresh_symbol_market_data(symbol: str, force: bool = False, max_age_hours: 
     table_5m = f"{symbol.lower()}_5m"
     table_1d = f"{symbol.lower()}_1d"
 
-    cached_5m = db.get_stock_data(table_5m, limit=1)
-    cached_1d = db.get_stock_data(table_1d, limit=1)
+    cached_5m = db.get_stock_data(table_5m, limit=1, columns=["Close"])
+    cached_1d = db.get_stock_data(table_1d, limit=1, columns=["Close"])
     if not force and not cached_5m.empty and not cached_1d.empty:
         latest_5m = pd.to_datetime(cached_5m.index[-1]).tz_localize(None)
         now = pd.Timestamp.now().tz_localize(None)
@@ -801,13 +801,18 @@ def refresh_symbol_market_data(symbol: str, force: bool = False, max_age_hours: 
     schwab_error = None
     try:
         schwab = get_schwab_provider()
+        latest_5m = pd.to_datetime(cached_5m.index[-1]).tz_localize(None) if not cached_5m.empty else None
+        latest_1d = pd.to_datetime(cached_1d.index[-1]).tz_localize(None) if not cached_1d.empty else None
         df_5m = schwab.get_price_history_frame(
             symbol,
             period_type="day",
             period=10,
             frequency_type="minute",
             frequency=5,
+            start_datetime=(latest_5m - pd.Timedelta(minutes=5)) if latest_5m is not None else None,
         )
+        if latest_5m is not None and not df_5m.empty:
+            df_5m = df_5m[df_5m.index > latest_5m]
         if not df_5m.empty:
             db.save_stock_data(df_5m, table_5m)
 
@@ -817,7 +822,10 @@ def refresh_symbol_market_data(symbol: str, force: bool = False, max_age_hours: 
             period=10,
             frequency_type="daily",
             frequency=1,
+            start_datetime=(latest_1d - pd.Timedelta(days=1)) if latest_1d is not None else None,
         )
+        if latest_1d is not None and not df_1d.empty:
+            df_1d = df_1d[df_1d.index > latest_1d]
         if not df_1d.empty:
             db.save_stock_data(df_1d, table_1d)
 
@@ -835,14 +843,31 @@ def refresh_symbol_market_data(symbol: str, force: bool = False, max_age_hours: 
     import yfinance as yf
     ticker = yf.Ticker(symbol)
 
-    df_5m = ticker.history(period="60d", interval="5m")
+    latest_5m = pd.to_datetime(cached_5m.index[-1]).tz_localize(None) if not cached_5m.empty else None
+    latest_1d = pd.to_datetime(cached_1d.index[-1]).tz_localize(None) if not cached_1d.empty else None
+
+    if latest_5m is not None:
+        start_5m = (latest_5m - pd.Timedelta(minutes=5)).strftime("%Y-%m-%d")
+        df_5m = ticker.history(start=start_5m, interval="5m")
+    else:
+        df_5m = ticker.history(period="60d", interval="5m")
     if not df_5m.empty:
         df_5m.index.name = 'timestamp'
+        df_5m.index = pd.to_datetime(df_5m.index).tz_localize(None)
+        if latest_5m is not None:
+            df_5m = df_5m[df_5m.index > latest_5m]
         db.save_stock_data(df_5m, table_5m)
 
-    df_1d = ticker.history(period="max", interval="1d")
+    if latest_1d is not None:
+        start_1d = (latest_1d - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+        df_1d = ticker.history(start=start_1d, interval="1d")
+    else:
+        df_1d = ticker.history(period="max", interval="1d")
     if not df_1d.empty:
         df_1d.index.name = 'timestamp'
+        df_1d.index = pd.to_datetime(df_1d.index).tz_localize(None)
+        if latest_1d is not None:
+            df_1d = df_1d[df_1d.index > latest_1d]
         db.save_stock_data(df_1d, table_1d)
 
     return {
@@ -959,7 +984,7 @@ def analyze_stock(symbol: str, provider: str = "auto", language: str = "zh"):
     import requests as req_lib
 
     table_name = f"{symbol.lower()}_1d"
-    df = db.get_stock_data(table_name, limit=100)
+    df = db.get_stock_data(table_name, limit=100, columns=["Close"])
     if df.empty:
         raise HTTPException(status_code=404, detail=f"No data for {symbol}")
 

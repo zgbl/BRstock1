@@ -21,6 +21,7 @@ from routes.strategies import router as strategies_router
 
 app = FastAPI(title="BRStock AI API", version="1.0.1")
 MARKET_TZ = ZoneInfo("America/New_York")
+REFRESH_STATE_UNKNOWN = object()
 
 # --- Initialize Database ---
 def init_db():
@@ -79,7 +80,11 @@ def _today_refresh_record():
             return row
     except Exception as e:
         print(f"Market data refresh state check failed: {e}")
-        return None
+        try:
+            config.db.engine.dispose()
+        except Exception:
+            pass
+        return REFRESH_STATE_UNKNOWN
 
 def _record_today_refresh(status: str, detail: str):
     today = datetime.now(MARKET_TZ).date().isoformat()
@@ -105,7 +110,12 @@ def _should_run_after_close_refresh(now=None):
     if current.weekday() >= 5:
         return False
     after_close_window = current.replace(hour=16, minute=15, second=0, microsecond=0)
-    return current >= after_close_window and not _today_refresh_record()
+    if current < after_close_window:
+        return False
+    record = _today_refresh_record()
+    if record is REFRESH_STATE_UNKNOWN:
+        return False
+    return not record
 
 async def _market_data_after_close_loop():
     await asyncio.sleep(5)

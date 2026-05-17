@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 import json
+import logging
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -13,6 +14,7 @@ from schwab_market_data import SchwabAuthError
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/api/options", tags=["options"])
+logger = logging.getLogger(__name__)
 
 class OptionBacktestRequest(BaseModel):
     ticker: str
@@ -43,6 +45,36 @@ LOCAL_CALIBRATION_ONLY_MESSAGE = (
     "Schwab calibration is available only in local authenticated mode. "
     "Remote demo uses saved calibration parameters."
 )
+SCHWAB_NOT_CONFIGURED_MESSAGE = "Real-time Schwab market data is not configured on this deployment."
+SCHWAB_AUTH_REQUIRED_MESSAGE = "Schwab market data authorization is required."
+SCHWAB_UNAVAILABLE_MESSAGE = "Schwab market data is temporarily unavailable."
+
+def _public_schwab_status(status):
+    token_auth_failed = bool(status.get("token_auth_failed"))
+    connected = bool(status.get("access_token_valid") or (status.get("has_refresh_token") and not token_auth_failed))
+    return {
+        "provider": "schwab",
+        "configured": bool(status.get("configured")),
+        "connected": connected,
+        "status": "CONNECTED" if connected else "NEEDS_AUTH",
+        "has_refresh_token": bool(status.get("has_refresh_token")),
+        "access_token_valid": bool(status.get("access_token_valid")),
+        "access_token_expires_at": status.get("access_token_expires_at"),
+        "refresh_token_expires_at": status.get("refresh_token_expires_at"),
+        **({"message": SCHWAB_AUTH_REQUIRED_MESSAGE} if token_auth_failed else {}),
+    }
+
+def _raise_public_schwab_error(exc, status_code=502):
+    raw = str(exc)
+    lowered = raw.lower()
+    if isinstance(exc, SchwabAuthError):
+        if "schwab_client" in lowered or "redirect_uri" in lowered or "configuration" in lowered or "configured" in lowered:
+            logger.warning("Schwab market data request failed: provider is not configured")
+            raise HTTPException(status_code=503, detail=SCHWAB_NOT_CONFIGURED_MESSAGE)
+        logger.warning("Schwab market data request failed: authorization required")
+        raise HTTPException(status_code=403, detail=SCHWAB_AUTH_REQUIRED_MESSAGE)
+    logger.warning("Schwab market data request failed: %s", raw[:300])
+    raise HTTPException(status_code=status_code, detail=SCHWAB_UNAVAILABLE_MESSAGE)
 
 def _latest_synthetic_inputs(ticker: str, target_date=None):
     target_date = target_date or datetime.utcnow().date()
@@ -193,8 +225,10 @@ async def get_options_chain(ticker: str):
             strikeCount=20,
         )
         return {"ticker": ticker.upper(), "provider": "schwab", "chain": chain["options"], "options": chain["options"]}
+    except SchwabAuthError as e:
+        _raise_public_schwab_error(e, status_code=503)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_public_schwab_error(e, status_code=502)
 
 @router.get("/moomoo/chain/{ticker}")
 async def get_moomoo_options_chain(ticker: str, current_user: str = Depends(get_current_user)):
@@ -232,21 +266,34 @@ async def send_moomoo_command(req: MoomooCommandRequest, current_user: str = Dep
 @router.get("/schwab/status")
 def get_schwab_status():
     try:
-        status = get_schwab_provider().status()
-        return {
-            **status,
-            "connected": bool(status.get("access_token_valid") or status.get("has_refresh_token")),
-            "status": "CONNECTED" if status.get("access_token_valid") or status.get("has_refresh_token") else "NEEDS_AUTH",
-        }
+        provider = get_schwab_provider()
+        status = provider.status()
+        if status.get("configured") and status.get("has_refresh_token") and not status.get("access_token_valid"):
+            try:
+                provider.refresh_access_token()
+                status = provider.status()
+            except SchwabAuthError:
+                logger.warning("Schwab status refresh failed: authorization required")
+                status["token_auth_failed"] = True
+        return _public_schwab_status(status)
     except Exception as e:
-        return {"provider": "schwab", "configured": False, "connected": False, "status": "ERROR", "error": str(e)}
+        logger.warning("Schwab status check failed: %s", str(e)[:300])
+        return {
+            "provider": "schwab",
+            "configured": False,
+            "connected": False,
+            "status": "UNAVAILABLE",
+            "message": SCHWAB_NOT_CONFIGURED_MESSAGE,
+        }
 
 @router.get("/schwab/auth-url")
 def get_schwab_auth_url():
     try:
         return {"provider": "schwab", "authorization_url": get_schwab_provider().get_authorization_url()}
+    except SchwabAuthError as e:
+        _raise_public_schwab_error(e, status_code=503)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        _raise_public_schwab_error(e, status_code=502)
 
 @router.post("/schwab/exchange-code")
 def exchange_schwab_code(req: SchwabOAuthCodeRequest):
@@ -255,15 +302,19 @@ def exchange_schwab_code(req: SchwabOAuthCodeRequest):
         raise HTTPException(status_code=400, detail="code is required")
     try:
         return {"provider": "schwab", "token": get_schwab_provider().exchange_code(code)}
+    except SchwabAuthError as e:
+        _raise_public_schwab_error(e, status_code=400)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        _raise_public_schwab_error(e, status_code=400)
 
 @router.get("/schwab/quote/{ticker}")
 def get_schwab_quote(ticker: str, fields: str = "quote,reference,regular"):
     try:
         return {"provider": "schwab", "ticker": ticker.upper(), "quote": get_schwab_provider().get_quote(ticker, fields=fields)}
+    except SchwabAuthError as e:
+        _raise_public_schwab_error(e, status_code=503)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        _raise_public_schwab_error(e, status_code=502)
 
 @router.get("/schwab/chain/{ticker}")
 def get_schwab_options_chain(
@@ -279,8 +330,10 @@ def get_schwab_options_chain(
             chain = provider.get_option_chain(ticker, **params)
             return {"provider": "schwab", "ticker": ticker.upper(), "raw": chain}
         return provider.get_normalized_option_chain(ticker, **params)
+    except SchwabAuthError as e:
+        _raise_public_schwab_error(e, status_code=503)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        _raise_public_schwab_error(e, status_code=502)
 
 @router.get("/calibration/status")
 def get_chain_calibration_status(current_user: str = Depends(get_current_user)):
@@ -289,11 +342,7 @@ def get_chain_calibration_status(current_user: str = Depends(get_current_user)):
     schwab_status = {"configured": False, "connected": False, "status": "UNAVAILABLE"}
     try:
         status = get_schwab_provider().status()
-        schwab_status = {
-            "configured": bool(status.get("configured")),
-            "connected": bool(status.get("access_token_valid") or status.get("has_refresh_token")),
-            "status": "CONNECTED" if status.get("access_token_valid") or status.get("has_refresh_token") else "NEEDS_AUTH",
-        }
+        schwab_status = _public_schwab_status(status)
     except Exception:
         pass
     can_run_live_calibration = bool(schwab_status.get("configured") and schwab_status.get("connected"))
@@ -459,7 +508,12 @@ async def get_synthetic_chain_by_date(
         df = yf.download(ticker, start=start.isoformat(), end=end.isoformat(), progress=False, auto_adjust=False)
         if df.empty:
             table_name = f"{ticker.lower()}_1d"
-            df = db.get_stock_data(table_name, limit=10000)
+            df = db.get_stock_data(
+                table_name,
+                limit=120,
+                end=target_date + timedelta(days=1),
+                columns=["Open", "High", "Low", "Close", "Volume"],
+            )
             if df.empty:
                 raise HTTPException(status_code=404, detail=f"No data for {ticker}")
             df = df.reset_index()

@@ -94,14 +94,24 @@ def get_backtest_price_frame(ticker, start_date, end_date):
     start = _normalize_date(start_date)
     end = _normalize_date(end_date)
 
-    cached = db.get_stock_data(table_name, limit=100000)
+    cached = db.get_stock_data(
+        table_name,
+        limit=None,
+        start=start,
+        end=end,
+        columns=["Open", "High", "Low", "Close", "Volume"],
+    )
     if not cached.empty:
         cached = normalize_yfinance_frame(cached, ticker)
-        update_stock_data_range_record(ticker, cached)
 
+    bounds = db.get_stock_data_bounds(table_name)
     record = get_stock_data_range_record(ticker)
     has_range = False
-    if record:
+    if bounds:
+        data_start = bounds["start"].date()
+        data_end = bounds["end"].date()
+        has_range = data_start <= start and data_end >= end
+    elif record:
         data_start = _normalize_date(record["data_start_date"])
         data_end = _normalize_date(record["data_end_date"])
         has_range = data_start <= start and data_end >= end
@@ -113,9 +123,16 @@ def get_backtest_price_frame(ticker, start_date, end_date):
             raise HTTPException(status_code=400, detail=f"No data found for {ticker}")
         frame.index = pd.to_datetime(frame.index).tz_localize(None)
         db.save_stock_data(frame, table_name)
-        cached = db.get_stock_data(table_name, limit=100000)
+        cached = db.get_stock_data(
+            table_name,
+            limit=None,
+            start=start,
+            end=end,
+            columns=["Open", "High", "Low", "Close", "Volume"],
+        )
         cached = normalize_yfinance_frame(cached, ticker)
-        update_stock_data_range_record(ticker, cached)
+        if not record:
+            update_stock_data_range_record(ticker, frame)
 
     cached.index = pd.to_datetime(cached.index).tz_localize(None)
     filtered = cached[(cached.index.date >= start) & (cached.index.date <= end)].copy()
